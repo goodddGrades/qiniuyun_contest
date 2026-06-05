@@ -5,21 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI 小说转剧本工具{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
 </head>
 <body>
+
+    <!-- 导航栏 — 毛玻璃效果 -->
     <header class="nav">
         <div class="container">
             <a href="{{ url_for('index') }}" class="nav-brand">📖 AI 小说转剧本</a>
+            <div class="nav-loading" id="navLoading"></div>
         </div>
     </header>
 
+    <!-- 加载遮罩（转换中显示） -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI 正在分析小说，生成剧本中...</div>
+    </div>
+
+    <!-- 主内容区 -->
     <main class="container">
         {% block content %}{% endblock %}
     </main>
 
+    <!-- 页脚 -->
     <footer class="footer">
         <div class="container">
-            <p>AI Novel to Script Tool — 比赛作品</p>
+            <p>AI Novel to Script Tool <span>·</span> 比赛作品 <span>·</span> v1.0</p>
         </div>
     </footer>
 
