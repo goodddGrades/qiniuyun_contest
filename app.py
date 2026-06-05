@@ -93,6 +93,49 @@ def _load_script(script_id: str) -> dict | None:
 
 
 # -----------------------------------------------------------
+# 转换进度跟踪
+# -----------------------------------------------------------
+import threading
+
+PROGRESS: dict[str, dict] = {}
+LOCK = threading.Lock()
+
+
+def _run_conversion(task_id: str, novel_text: str, title: str):
+    """在后台线程中执行转换，逐步更新进度"""
+    from novel_to_script.converter import NovelConverter
+
+    def on_progress(current, total, message):
+        status = "converting" if total > 0 and current > 0 else "analyzing"
+        with LOCK:
+            PROGRESS[task_id] = {
+                "status": status,
+                "current": current,
+                "total": total,
+                "message": message,
+            }
+
+    try:
+        on_progress(0, 1, "正在分析小说...")
+        converter = NovelConverter()
+        result = converter.convert(novel_text, title=title, progress_callback=on_progress)
+
+        with LOCK:
+            PROGRESS[task_id] = {"status": "saving", "current": 1, "total": 1, "message": "正在保存剧本..."}
+
+        script_id = _save_script(result)
+        with LOCK:
+            PROGRESS[task_id] = {
+                "status": "done", "current": 1, "total": 1,
+                "message": "转换完成!", "result_id": script_id,
+            }
+
+    except Exception as e:
+        with LOCK:
+            PROGRESS[task_id] = {"status": "error", "current": 0, "total": 0, "message": f"转换失败: {e}"}
+
+
+# -----------------------------------------------------------
 # 路由
 # -----------------------------------------------------------
 
@@ -141,7 +184,7 @@ def read_book(filename: str):
 
 @app.route("/convert", methods=["POST"])
 def convert():
-    """接收小说文本（粘贴或上传文件），执行转换"""
+    """接收小说文本（粘贴或上传文件），后台执行转换，跳转到进度页"""
     title = request.form.get("title", "").strip() or "未命名作品"
     novel_text = ""
 
@@ -154,27 +197,41 @@ def convert():
                 "index.html",
                 error=f"不支持的文件格式：{ext}，支持：{', '.join(SUPPORTED_EXTENSIONS)}",
             )
-        # 保存临时文件再读取
         tmp = STORAGE_DIR / uploaded_file.filename
         uploaded_file.save(str(tmp))
         novel_text = extract_text_from_file(tmp)
         tmp.unlink(missing_ok=True)
         title = title or Path(uploaded_file.filename).stem
 
-    # 没有文件就取粘贴框的内容
     if not novel_text:
         novel_text = request.form.get("novel_text", "").strip()
 
     if not novel_text:
         return render_template("index.html", error="请粘贴小说内容或上传文件")
 
-    # 执行转换
-    converter = NovelConverter()
-    result = converter.convert(novel_text, title=title)
+    # 创建任务 ID，启动后台转换
+    task_id = uuid.uuid4().hex[:8]
+    with LOCK:
+        PROGRESS[task_id] = {"status": "queued", "current": 0, "total": 0, "message": "正在准备..."}
 
-    # 保存并跳转
-    script_id = _save_script(result)
-    return redirect(url_for("result", script_id=script_id))
+    thread = threading.Thread(target=_run_conversion, args=(task_id, novel_text, title), daemon=True)
+    thread.start()
+
+    return redirect(url_for("progress_page", task_id=task_id))
+
+
+@app.route("/progress/<task_id>")
+def progress_page(task_id: str):
+    """转换进度页"""
+    return render_template("progress.html", task_id=task_id)
+
+
+@app.route("/progress/<task_id>/status")
+def progress_status(task_id: str):
+    """转换进度 API（JSON）"""
+    with LOCK:
+        data = PROGRESS.get(task_id, {"status": "not_found", "message": "任务不存在"})
+    return jsonify(data)
 
 
 @app.route("/result/<script_id>")

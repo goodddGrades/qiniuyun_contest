@@ -193,7 +193,7 @@ def test_convert_with_mock_redirects(client):
 
 
 def test_full_flow_convert_to_result(client):
-    """完整转换流程：提交 -> 结果页可访问"""
+    """完整转换流程：提交 -> 进度页"""
     resp = client.post(
         "/convert",
         data={
@@ -202,7 +202,7 @@ def test_full_flow_convert_to_result(client):
         },
     )
     assert resp.status_code == 302
-    assert "/result/" in resp.location
+    assert "/progress/" in resp.location
 
 
 def test_result_not_found(client):

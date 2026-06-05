@@ -135,18 +135,21 @@ class NovelConverter:
     # 公开接口
     # -------------------------------------------------------
 
-    def convert(self, novel_text: str, title: str = "") -> dict[str, Any]:
+    def convert(self, novel_text: str, title: str = "",
+                progress_callback=None) -> dict[str, Any]:
         """
         将整部小说转换为剧本结构。
 
         参数：
             novel_text: 小说全文（含章节分隔）
             title:      剧本标题（可选）
+            progress_callback: 可选回调函数(current, total, message)
 
         返回：
             符合 schema 的剧本字典
         """
         chapters = self._split_chapters(novel_text)
+        total = min(len(chapters), 6)
         result = get_empty_script()
 
         result["剧本"]["元数据"]["标题"] = title or "未命名剧本"
@@ -159,8 +162,11 @@ class NovelConverter:
         if not self.client:
             return self._mock_conversion(chapters, result)
 
+        if progress_callback:
+            progress_callback(0, total, "正在分析角色...")
+
         # --------------------------------------------------
-        # 阶段1：分析全篇角色（取前 6000 字就够了）
+        # 阶段1：分析全篇角色
         # --------------------------------------------------
         sample = novel_text[:6000]
         characters = self._extract_characters(sample)
@@ -168,15 +174,20 @@ class NovelConverter:
         char_context = self._format_characters(characters)
 
         # --------------------------------------------------
-        # 阶段2：逐章转换（带上角色上下文）
+        # 阶段2：逐章转换
         # --------------------------------------------------
-        for i, chapter in enumerate(chapters):
+        chapter_count = min(len(chapters), 6)
+        for i, chapter in enumerate(chapters[:chapter_count]):
+            if progress_callback:
+                progress_callback(i + 1, chapter_count, f"正在转换第 {i + 1}/{chapter_count} 章...")
             act_data = self._convert_chapter_with_context(
                 chapter, i + 1, char_context
             )
             result["剧本"]["幕"].append(act_data)
 
-        # 后处理：确保角色表完整
+        # 后处理
+        if progress_callback:
+            progress_callback(chapter_count, chapter_count, "正在合并角色表...")
         self._consolidate_characters(result, characters)
 
         return result
