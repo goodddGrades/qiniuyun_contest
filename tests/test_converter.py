@@ -1,5 +1,6 @@
-"""转换器与 Flask 路由测试 —— Schema 验证 + 章节分割 + Mock 转换"""
+"""转换器与 Flask 路由测试 —— Schema + 章节分割 + Mock + 路由集成"""
 
+import json
 import yaml
 from novel_to_script.converter import NovelConverter
 from novel_to_script.schema import validate_script, get_empty_script
@@ -156,3 +157,64 @@ def test_mock_missing_title_defaults():
     )
     meta = result["剧本"]["元数据"]
     assert meta.get("标题") or meta.get("原作")
+
+
+# ============================================================
+# 集成测试 —— Flask 路由
+# ============================================================
+
+
+def test_index_returns_200(client):
+    """首页应返回 200"""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    text = resp.data.decode()
+    assert "upload" in text.lower() or "novel" in text.lower() or "小说" in text
+
+
+def test_convert_empty_text_returns_error(client):
+    """空内容提交应返回错误提示"""
+    resp = client.post("/convert", data={"novel_text": "", "title": "测试"})
+    assert resp.status_code == 200
+    text = resp.data.decode()
+    assert "error" in text.lower() or "请粘贴" in text
+
+
+def test_convert_with_mock_redirects(client):
+    """有效内容应重定向到结果页"""
+    resp = client.post(
+        "/convert",
+        data={
+            "novel_text": "第1章 开头\n正文\n第2章 发展\n正文\n第3章 高潮\n正文",
+            "title": "测试小说",
+        },
+    )
+    assert resp.status_code == 302
+
+
+def test_full_flow_convert_to_result(client):
+    """完整转换流程：提交 -> 结果页可访问"""
+    resp = client.post(
+        "/convert",
+        data={
+            "novel_text": "第1章 开头\n正文\n第2章 发展\n正文\n第3章 高潮\n正文",
+            "title": "完整流程测试",
+        },
+    )
+    # 应重定向到结果页
+    assert resp.status_code == 302
+    assert "/result/" in resp.location
+
+
+def test_result_not_found(client):
+    """不存在的 script_id 应返回错误"""
+    resp = client.get("/result/nonexistent123")
+    text = resp.data.decode()
+    assert "error" in text.lower() or "不存在" in text
+
+
+def test_editor_not_found(client):
+    """不存在的编辑页面应返回错误"""
+    resp = client.get("/editor/nonexistent123")
+    text = resp.data.decode()
+    assert "error" in text.lower() or "不存在" in text
