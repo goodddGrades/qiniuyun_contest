@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}编辑剧本 - AI 小说转剧本工具{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="result-header">
+        <h1>✏️ 编辑剧本</h1>
+        <div class="result-actions">
+            <button id="saveBtn" class="btn btn-primary">💾 保存</button>
+            <a href="{{ url_for('download', script_id=script_id) }}" class="btn btn-secondary">
+                ⬇️ 下载 YAML
+            </a>
+            <a href="{{ url_for('result', script_id=script_id) }}" class="btn btn-outline">
+                👁️ 预览
+            </a>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <textarea id="yamlEditor" class="editor-textarea"
+                  spellcheck="false">{{ yaml }}</textarea>
+    </div>
+
+    <div id="saveStatus" class="save-status"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SCRIPT_ID = "{{ script_id }}";
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+    const yamlText = document.getElementById("yamlEditor").value;
+    const status = document.getElementById("saveStatus");
+
+    status.className = "save-status saving";
+    status.textContent = "保存中...";
+
+    try {
+        const resp = await fetch(`/editor/${SCRIPT_ID}/save`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ yaml_text: yamlText }),
+        });
+        const data = await resp.json();
+
+        if (data.ok) {
+            status.className = "save-status success";
+            status.textContent = "✅ 保存成功！";
+        } else {
+            status.className = "save-status error";
+            status.textContent = "❌ " + (data.error || "保存失败");
+        }
+    } catch (e) {
+        status.className = "save-status error";
+        status.textContent = "❌ 网络错误: " + e.message;
+    }
+
+    setTimeout(() => { status.textContent = ""; }, 3000);
+});
+</script>
+{% endblock %}
