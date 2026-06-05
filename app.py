@@ -9,17 +9,12 @@ AI小说转剧本工具 - Flask Web 应用
   /download/ 下载 YAML
 """
 
-import io
 import os
 import sys
 import uuid
 
 import yaml
 from pathlib import Path
-
-# Windows GBK 编码兼容：强制 Flask 输出 UTF-8
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 from flask import (
     Flask,
@@ -52,8 +47,9 @@ app.config["JSON_AS_ASCII"] = False
 
 @app.after_request
 def force_utf8(response):
-    """确保所有响应使用 UTF-8 编码（解决 Windows GBK 问题）"""
-    response.content_type = "text/html; charset=utf-8"
+    """确保 HTML 响应使用 UTF-8 编码（解决 Windows GBK 问题），不影响文件下载"""
+    if "text/html" in response.content_type:
+        response.content_type = "text/html; charset=utf-8"
     return response
 
 
@@ -239,4 +235,12 @@ def download(script_id: str):
 # -----------------------------------------------------------
 
 if __name__ == "__main__":
+    import io
+    # Windows 编码兼容: 只在直接启动时生效, 不影响 pytest
+    if hasattr(sys.stdout, "buffer"):
+        try:
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+        except Exception:
+            pass
     app.run(debug=True, port=5000)
