@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}转换中 - AI 小说转剧本工具{% endblock %}
+
+{% block content %}
+<div class="card progress-card">
+    <div class="progress-header">
+        <h1>🤖 正在转换</h1>
+        <p class="subtitle" id="statusText">正在准备...</p>
+    </div>
+
+    <div class="progress-bar-container">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-steps" id="progressSteps">
+            <span class="step" data-step="1">📖 分析角色</span>
+            <span class="step" data-step="2">✍️ 转换章节</span>
+            <span class="step" data-step="3">💾 保存剧本</span>
+            <span class="step" data-step="4">✅ 完成</span>
+        </div>
+    </div>
+
+    <div class="progress-detail" id="progressDetail">
+        <p>请耐心等待，AI 正在逐章处理你的小说...</p>
+    </div>
+
+    <div class="progress-spinner" id="progressSpinner">
+        <div class="loading-dots">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TASK_ID = "{{ task_id }}";
+
+const PHASES = {
+    "queued":     { step: 0, pct: 0,  text: "正在准备..." },
+    "analyzing":  { step: 1, pct: 15, text: "正在分析小说角色..." },
+    "converting": { step: 2, pct: 45, text: "正在逐章转换为剧本..." },
+    "saving":     { step: 3, pct: 85, text: "正在保存剧本..." },
+    "done":       { step: 4, pct: 100, text: "转换完成！" },
+    "error":      { step: 0, pct: 0,  text: "转换失败" },
+};
+
+function updateProgress(data) {
+    const phase = PHASES[data.status] || PHASES["queued"];
+    const pct = data.total > 0
+        ? Math.round((data.current / data.total) * 70) + 15
+        : phase.pct;
+
+    // 进度条
+    document.getElementById("progressFill").style.width = Math.min(pct, 100) + "%";
+
+    // 状态文字
+    document.getElementById("statusText").textContent = data.message || phase.text;
+
+    // 步骤高亮
+    document.querySelectorAll(".step").forEach((el, i) => {
+        const step = i + 1;
+        el.classList.toggle("active", step <= phase.step);
+        el.classList.toggle("done", step < phase.step || data.status === "done");
+    });
+
+    // 详情信息
+    const detail = document.getElementById("progressDetail");
+    if (data.total > 0 && data.current > 0) {
+        detail.innerHTML = `<p>已完成 ${data.current}/${data.total} 章</p>`;
+    }
+
+    return data.status;
+}
+
+async function poll() {
+    try {
+        const resp = await fetch(`/progress/${TASK_ID}/status`);
+        const data = await resp.json();
+        const status = updateProgress(data);
+
+        if (status === "done") {
+            setTimeout(() => {
+                window.location.href = "/result/" + data.result_id;
+            }, 800);
+            return;
+        }
+        if (status === "error") {
+            document.getElementById("progressSpinner").innerHTML =
+                `<p class="error-msg">❌ ${data.message}</p>
+                 <a href="/" class="btn btn-outline">返回首页</a>`;
+            return;
+        }
+        setTimeout(poll, 1500);
+    } catch (e) {
+        setTimeout(poll, 2000);
+    }
+}
+
+poll();
+</script>
+{% endblock %}
