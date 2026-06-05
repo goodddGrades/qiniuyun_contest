@@ -10,19 +10,41 @@
     <div class="alert alert-error">{{ error }}</div>
     {% endif %}
 
-    <form action="{{ url_for('convert') }}" method="POST" class="upload-form" id="uploadForm">
+    {% if from_book %}
+    <div class="alert alert-info">
+        📂 已从书库加载：<strong>{{ from_book }}</strong>
+        <a href="{{ url_for('list_books') }}" style="float:right">← 返回书库</a>
+    </div>
+    {% endif %}
+
+    <form action="{{ url_for('convert') }}" method="POST"
+          class="upload-form" id="uploadForm" enctype="multipart/form-data">
         <div class="form-group">
             <label for="title">作品名称</label>
             <input type="text" id="title" name="title"
-                   placeholder="（可选）输入小说名称，如「三体」「平凡的世界」" class="form-input">
+                   placeholder="（可选）输入小说名称，如「三体」「平凡的世界」"
+                   class="form-input" value="{{ preset_title or '' }}">
         </div>
 
         <div class="form-group">
+            <label>
+                上传小说文件
+                <span class="hint">支持 .txt .md .docx</span>
+            </label>
+            <input type="file" id="fileInput" name="file"
+                   accept=".txt,.md,.docx" class="form-input"
+                   style="padding:10px">
+        </div>
+
+        <div class="form-divider">— 或者 —</div>
+
+        <div class="form-group">
             <label for="novel_text">
-                粘贴小说内容
+                直接粘贴小说内容
                 <span class="hint" id="chapterCount">至少 3 个章节，用「第X章」分隔</span>
             </label>
-            <div class="drop-zone" id="dropZone">
+            <div class="drop-zone" id="dropZone"
+                 {% if from_book %}style="display:none"{% endif %}>
                 <span class="drop-zone-icon">📄</span>
                 <p class="drop-zone-text">
                     拖拽 <strong>.txt</strong> 文件到此处，或点击此区域粘贴文本
@@ -30,7 +52,7 @@
             </div>
             <textarea id="novel_text" name="novel_text" rows="20"
                       placeholder="在此粘贴你的小说内容，包含章节标题&#10;&#10;例如：&#10;第一章 觉醒&#10;清晨的阳光透过窗帘洒进房间...&#10;&#10;第二章 抉择&#10;..."
-                      class="form-textarea"></textarea>
+                      class="form-textarea">{{ preset_text or '' }}</textarea>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg">
@@ -43,7 +65,8 @@
         <ul>
             <li>粘贴至少 <strong>3 章</strong> 以上的小说内容，效果最佳</li>
             <li>建议用「第X章」或「Chapter X」作为章节分隔标记</li>
-            <li>支持拖拽上传 <code>.txt</code> 文件，自动填入内容</li>
+            <li>支持上传 <code>.txt</code> <code>.md</code> <code>.docx</code> 文件</li>
+            <li>也可从 <a href="{{ url_for('list_books') }}"><strong>书库</strong></a> 直接选择小说</li>
             <li>转换后可在编辑页面进一步打磨剧本细节</li>
             <li>最终可导出为 <code>.yaml</code> 文件</li>
         </ul>
