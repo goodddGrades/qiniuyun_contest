@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}书库 - AI 小说转剧本工具{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="result-header">
+        <h1>📚 书库</h1>
+        <a href="{{ url_for('index') }}" class="btn btn-outline">← 返回首页</a>
+    </div>
+
+    {% if books %}
+    <div class="book-grid">
+        {% for book in books %}
+        <a href="{{ url_for('read_book', filename=book.name) }}" class="book-card">
+            <div class="book-icon">
+                {% if book.ext == '.docx' %}📝{% elif book.ext == '.md' %}📓{% else %}📄{% endif %}
+            </div>
+            <div class="book-info">
+                <h3>{{ book.name }}</h3>
+                <span class="book-meta">{{ book.ext }} · {{ book.size }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>📂 book/ 文件夹为空</p>
+        <p class="hint">在项目根目录下创建 book/ 文件夹，放入 .txt .md .docx 格式的小说</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

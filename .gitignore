@@ -20,6 +20,7 @@ env/
 *.swp
 *.swo
 *~
+.CLAUDE.md
 
 # OS
 .DS_Store
@@ -31,9 +32,14 @@ instance/
 # Project specific
 *.session
 
+# Virtual environment
+environment01/
+
 # Local AI/Claude config
 .claude/
+
 
 # Local docs & environment
 .frontend-api-docs.md
 environment01/
+

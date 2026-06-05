@@ -75,17 +75,61 @@ CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小�
 
 
 class NovelConverter:
-    """小说→剧本转换器"""
+    """小说→剧本转换器
+
+    支持两种 LLM 后端：
+      - Claude（Anthropic SDK）— 默认
+      - DeepSeek（OpenAI 兼容接口）— 配置 DEEPSEEK_API_KEY 后自动切换
+    """
 
     def __init__(self, api_key: str = ""):
-        self.api_key = api_key or Config.ANTHROPIC_API_KEY
+        """api_key 参数保留向后兼容，实际使用 Config 自动检测"""
+        self.provider = Config.LLM_PROVIDER
         self.client = None
-        if self.api_key:
+        self._init_client()
+
+    def _init_client(self):
+        """根据配置初始化 LLM 客户端"""
+        if self.provider == "deepseek" and Config.DEEPSEEK_API_KEY:
+            try:
+                from openai import OpenAI
+                self.client = OpenAI(
+                    api_key=Config.DEEPSEEK_API_KEY,
+                    base_url=Config.DEEPSEEK_BASE_URL,
+                )
+            except Exception as e:
+                print(f"DeepSeek 客户端初始化失败: {e}")
+        elif Config.ANTHROPIC_API_KEY:
             try:
                 from anthropic import Anthropic
-                self.client = Anthropic(api_key=self.api_key)
-            except Exception:
-                self.client = None
+                self.client = Anthropic(api_key=Config.ANTHROPIC_API_KEY)
+            except Exception as e:
+                print(f"Anthropic 客户端初始化失败: {e}")
+
+    def _call_llm(self, system: str, user: str, max_tokens: int = 4096) -> str:
+        """统一的 LLM 调用接口，自动选择 Claude 或 DeepSeek"""
+        if not self.client:
+            return ""
+
+        if self.provider == "deepseek":
+            response = self.client.chat.completions.create(
+                model="deepseek-chat",
+                max_tokens=max_tokens,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            )
+            return response.choices[0].message.content or ""
+
+        # Anthropic / Claude
+        response = self.client.messages.create(
+            model="claude-sonnet-4-6-20250514",
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return response.content[0].text
 
     # -------------------------------------------------------
     # 公开接口
@@ -144,17 +188,14 @@ class NovelConverter:
     def _extract_characters(self, sample: str) -> list[dict]:
         """分析小说片段，提取角色清单"""
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6-20250514",
-                max_tokens=2048,
+            content = self._call_llm(
                 system=ANALYST_PROMPT,
-                messages=[{
-                    "role": "user",
-                    "content": f"请分析以下小说片段，提取所有角色信息：\n\n{sample}",
-                }],
+                user=f"请分析以下小说片段，提取所有角色信息：\n\n{sample}",
+                max_tokens=2048,
             )
+            if not content:
+                return []
 
-            content = response.content[0].text
             data = self._parse_yaml_block(content)
             if data and "角色表" in data:
                 return data["角色表"]
@@ -193,7 +234,7 @@ class NovelConverter:
             return self._mock_act(chapter_num)
 
         try:
-            prompt = CONVERTER_PROMPT.format(
+            system = CONVERTER_PROMPT.format(
                 character_context=char_context,
                 chapter_num=chapter_num,
             )
@@ -202,14 +243,10 @@ class NovelConverter:
                 f"{chapter_text[:Config.MAX_CHAPTER_CHARS]}"
             )
 
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6-20250514",
-                max_tokens=4096,
-                system=prompt,
-                messages=[{"role": "user", "content": user_msg}],
-            )
+            content = self._call_llm(system=system, user=user_msg, max_tokens=4096)
+            if not content:
+                return self._mock_act(chapter_num)
 
-            content = response.content[0].text
             data = self._parse_yaml_block(content)
             if data and "幕" in data:
                 acts = data["幕"]

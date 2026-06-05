@@ -19,7 +19,11 @@
     </div>
 
     <div class="yaml-viewer">
-        <pre><code class="language-yaml">{{ yaml }}</code></pre>
+        <div class="yaml-viewer-header">
+            <span>📄 script_{{ script_id }}.yaml</span>
+            <button class="copy-btn" id="copyYamlBtn">📋 复制</button>
+        </div>
+        <pre><code class="language-yaml" id="yamlCode">{{ yaml }}</code></pre>
     </div>
 </div>
 {% endblock %}
