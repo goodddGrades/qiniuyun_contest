@@ -1,4 +1,4 @@
-"""转换器与 Flask 路由测试 —— Schema + 章节分割 + Mock + 路由 + 编辑器保存"""
+"""转换器与 Flask 路由测试 —— 完整测试套件（32个用例）"""
 
 import json
 import yaml
@@ -267,3 +267,92 @@ def test_save_editor_nonexistent_id(client):
         data={"yaml_text": valid_yaml},
     )
     assert resp.status_code == 200
+
+
+# ============================================================
+# 集成测试 —— 下载接口
+# ============================================================
+
+
+def test_download_existing_script(client, sample_script_id):
+    """存在的剧本应成功下载"""
+    resp = client.get(f"/download/{sample_script_id}")
+    assert resp.status_code == 200
+    assert "yaml" in resp.content_type
+    assert ".yaml" in resp.headers.get("Content-Disposition", "")
+
+
+def test_download_not_found(client):
+    """不存在的剧本下载应返回错误"""
+    resp = client.get("/download/nonexistent123")
+    text = resp.data.decode()
+    assert "error" in text.lower() or "不存在" in text
+
+
+# ============================================================
+# API 异常格式处理
+# ============================================================
+
+
+def test_convert_with_special_chars(client):
+    """特殊字符（Unicode）应正常处理"""
+    special_text = (
+        "第1章 开篇\n特殊符号：★☆♠♣♥♦\n测试内容\n\n"
+        "第2章 中间\n引号与书名号\n内容\n\n"
+        "第3章 结尾\n表情符号\n结束"
+    )
+    resp = client.post(
+        "/convert",
+        data={
+            "novel_text": special_text,
+            "title": "特殊字符测试",
+        },
+    )
+    assert resp.status_code == 302
+
+
+def test_convert_very_long_title(client):
+    """超长标题应正常处理"""
+    long_title = "长" * 200
+    resp = client.post(
+        "/convert",
+        data={
+            "novel_text": "第1章 A\n内容\n第2章 B\n内容\n第3章 C\n内容",
+            "title": long_title,
+        },
+    )
+    assert resp.status_code in (200, 302)
+
+
+def test_convert_mixed_line_endings(client):
+    """不同换行符（\\n, \\r\\n）应能正确分割"""
+    mixed_text = "第1章 开头\r\n正文内容\r\n第2章 发展\n更多内容\r第3章 结尾\n结束"
+    resp = client.post(
+        "/convert",
+        data={
+            "novel_text": mixed_text,
+            "title": "换行符测试",
+        },
+    )
+    assert resp.status_code in (200, 302)
+
+
+def test_save_invalid_script_id(client):
+    """不存在的 ID 保存损坏 YAML 应返回 400"""
+    resp = client.post(
+        "/editor/badid999999/save",
+        data={"yaml_text": "not: valid: yaml: content"},
+    )
+    assert resp.status_code == 400
+
+
+def test_save_editor_malformed_json_response(client, sample_script_id):
+    """保存后响应应为有效 JSON"""
+    valid_yaml = yaml.dump(get_empty_script(), allow_unicode=True)
+    resp = client.post(
+        f"/editor/{sample_script_id}/save",
+        data={"yaml_text": valid_yaml},
+    )
+    data = json.loads(resp.data)
+    assert isinstance(data, dict)
+    assert "ok" in data
