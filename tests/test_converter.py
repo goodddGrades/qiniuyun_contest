@@ -269,6 +269,39 @@ def test_save_editor_nonexistent_id(client):
     assert resp.status_code == 200
 
 
+def test_save_editor_updates_file(client, sample_script_id):
+    """保存后再次读取应返回更新后的内容"""
+    new_script = get_empty_script()
+    new_script["剧本"]["元数据"]["标题"] = "更新后的标题"
+    new_yaml = yaml.dump(new_script, allow_unicode=True)
+
+    resp1 = client.post(
+        f"/editor/{sample_script_id}/save", data={"yaml_text": new_yaml}
+    )
+    assert resp1.status_code == 200
+
+    resp2 = client.get(f"/editor/{sample_script_id}")
+    text = resp2.data.decode()
+    assert "更新后的标题" in text
+
+
+def test_save_editor_updates_then_download(client, sample_script_id):
+    """保存后下载的 YAML 应包含更新内容"""
+    new_script = get_empty_script()
+    new_script["剧本"]["元数据"]["标题"] = "保存后验证的标题"
+    new_yaml = yaml.dump(new_script, allow_unicode=True)
+
+    resp_save = client.post(
+        f"/editor/{sample_script_id}/save", data={"yaml_text": new_yaml}
+    )
+    assert resp_save.status_code == 200
+
+    resp_dl = client.get(f"/download/{sample_script_id}")
+    assert resp_dl.status_code == 200
+    content = resp_dl.data.decode()
+    assert "保存后验证的标题" in content
+
+
 # ============================================================
 # 集成测试 —— 下载接口
 # ============================================================
