@@ -126,22 +126,50 @@ document.addEventListener("DOMContentLoaded", () => {
     const yamlCode = document.getElementById("yamlCode");
 
     if (copyBtn && yamlCode) {
-        copyBtn.addEventListener("click", async () => {
-            try {
-                // 获取纯文本（去掉 HTML 标签）
-                const text = yamlCode.textContent || yamlCode.innerText;
-                await navigator.clipboard.writeText(text);
+        copyBtn.addEventListener("click", function () {
+            const text = yamlCode.textContent || yamlCode.innerText;
 
-                copyBtn.classList.add("copied");
-                copyBtn.textContent = "✅ 已复制";
-
-                setTimeout(() => {
-                    copyBtn.classList.remove("copied");
-                    copyBtn.textContent = "📋 复制";
-                }, 2000);
-            } catch (e) {
-                showToast("复制失败，请手动选择文本复制", "error");
+            // 方案A：Clipboard API（现代浏览器，需要 HTTPS/localhost）
+            function copyModern() {
+                return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
             }
+
+            // 方案B：传统 execCommand 回退（所有浏览器，包括 HTTP）
+            function copyLegacy() {
+                try {
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.style.position = "fixed";
+                    ta.style.left = "-9999px";
+                    ta.style.top = "-9999px";
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    return ok;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // 先试 A，失败换 B，都不行给提示
+            copyModern().then((ok) => {
+                if (ok) return true;
+                return copyLegacy();
+            }).then((ok) => {
+                if (ok) {
+                    copyBtn.textContent = "✅ 已复制";
+                    copyBtn.classList.add("copied");
+                    showToast("✅ 已复制到剪贴板", "success");
+                    setTimeout(() => {
+                        copyBtn.textContent = "📋 复制";
+                        copyBtn.classList.remove("copied");
+                    }, 2000);
+                } else {
+                    showToast("⚠️ 复制失败，请按 Ctrl+C 手动复制", "error");
+                }
+            });
         });
     }
 
@@ -201,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "",
             "林夜从没想过，自己会在凌晨三点的地铁站遇见一个死人。",
             "",
-            "那是深秋的最后一个夜晚，冷风裹着枯叶在地铁口打转。林夜刚结束一场不愉快的采访——他本想挖出市长贪污的证据，却被安保"客气"地请了出来。他叼着烟，站在空荡荡的站台上，等着最后一班地铁。",
+            "那是深秋的最后一个夜晚，冷风裹着枯叶在地铁口打转。林夜刚结束一场不愉快的采访——他本想挖出市长贪污的证据，却被安保\u201C客气\u201D地请了出来。他叼着烟，站在空荡荡的站台上，等着最后一班地铁。",
             "",
             "列车进站，车厢里只有两个乘客。一个戴耳机的年轻女孩，和一个裹着黑色风衣的中年男人。林夜没在意，找了个角落坐下，翻开笔记本整理今天的采访记录。",
             "",
@@ -230,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "",
             "林夜猛吸了一口烟。",
             "",
-            "他决定去找那个戴耳机的女孩。可是地铁站没有监控——上周刚被"维修"。他只能凭记忆画了一幅她的素描，发到了自己的朋友圈，附了一行字：\"寻人，有线索请私信。\"",
+            "他决定去找那个戴耳机的女孩。可是地铁站没有监控——上周刚被\u201C维修\u201D。他只能凭记忆画了一幅她的素描，发到了自己的朋友圈，附了一行字：\"寻人，有线索请私信。\"",
             "",
             "消息刚发出去三分钟，他的手机就响了。来电显示是一个陌生号码。",
             "",
@@ -251,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "",
             "第二天一早，林夜被一个电话吵醒。他发现自己居然在出租车上睡着了，手机屏幕上显示着一条短信：\"别查了，为了你好。——陈远志的妻子\"",
             "",
-            "陈远志有妻子？档案上写的是"离异"。林夜立刻打电话给陈远志生前的同事。对方支支吾吾了半天，最后甩了一句：\"他前妻三年前就出国了，没人知道去了哪。\"",
+            "陈远志有妻子？档案上写的是\u201C离异\u201D。林夜立刻打电话给陈远志生前的同事。对方支支吾吾了半天，最后甩了一句：\"他前妻三年前就出国了，没人知道去了哪。\"",
             "",
             "那这条短信是谁发的？",
             "",
