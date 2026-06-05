@@ -20,6 +20,7 @@ env/
 *.swp
 *.swo
 *~
+.CLAUDE.md
 
 # OS
 .DS_Store
@@ -37,5 +38,8 @@ environment01/
 # Local AI/Claude config
 .claude/
 
-# Frontend API documentation (local only)
+
+# Local docs & environment
 .frontend-api-docs.md
+environment01/
+
