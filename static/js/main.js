@@ -32,17 +32,36 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        // 放下文件 → 读取 .txt 内容
+        // 放下文件 → 读取内容
         dropZone.addEventListener("drop", (e) => {
             const files = e.dataTransfer.files;
             if (files.length === 0) return;
 
             const file = files[0];
-            if (!file.name.endsWith(".txt")) {
-                showToast("请拖拽 .txt 文件", "error");
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            if (!["txt", "md", "docx"].includes(ext)) {
+                showToast("请拖拽 .txt / .md / .docx 文件", "error");
                 return;
             }
 
+            if (ext === "docx") {
+                // .docx 是二进制格式，设到文件上传 input 上
+                const fileInput = document.getElementById("fileInput");
+                if (fileInput) {
+                    // 用 DataTransfer 设文件
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                    // 显示文件名
+                    const label = document.querySelector("label[for='fileInput']") || fileInput;
+                    const origText = label.textContent || label.innerText;
+                    showToast(`📄 已选择: ${file.name}，点击「开始转换」上传`, "success");
+                }
+                return;
+            }
+
+            // .txt / .md 直接读文本
             const reader = new FileReader();
             reader.onload = (event) => {
                 novelText.value = event.target.result;
