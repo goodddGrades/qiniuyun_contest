@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}转换结果 - AI 小说转剧本工具{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="result-header">
+        <h1>✅ 转换完成</h1>
+        <div class="result-actions">
+            <a href="{{ url_for('editor', script_id=script_id) }}" class="btn btn-primary">
+                ✏️ 编辑剧本
+            </a>
+            <a href="{{ url_for('download', script_id=script_id) }}" class="btn btn-secondary">
+                ⬇️ 下载 YAML
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline">
+                🔄 重新转换
+            </a>
+        </div>
+    </div>
+
+    <div class="yaml-viewer">
+        <pre><code class="language-yaml">{{ yaml }}</code></pre>
+    </div>
+</div>
+{% endblock %}
