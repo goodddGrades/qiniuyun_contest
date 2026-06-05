@@ -80,6 +80,9 @@ def _save_script(data: dict, script_id: str = "") -> str:
         script_id = uuid.uuid4().hex[:12]
     filepath = STORAGE_DIR / f"{script_id}.yaml"
     filepath.write_text(yaml.dump(data, allow_unicode=True, indent=2), encoding="utf-8")
+    # 额外存一份标题，方便下载用
+    title = (data.get("剧本", {}).get("元数据", {})).get("标题", "剧本")
+    STORAGE_DIR.joinpath(f"{script_id}.title").write_text(title, encoding="utf-8")
     return script_id
 
 
@@ -274,16 +277,23 @@ def save_editor(script_id: str):
 
 @app.route("/download/<script_id>")
 def download(script_id: str):
-    """下载 YAML 文件"""
+    """下载 YAML 文件（文件名：原小说名_剧本.yaml）"""
     filepath = STORAGE_DIR / f"{script_id}.yaml"
     if not filepath.exists():
         return render_template("index.html", error="剧本不存在或已过期")
+
+    # 读取保存的标题
+    title_file = STORAGE_DIR / f"{script_id}.title"
+    title = title_file.read_text(encoding="utf-8") if title_file.exists() else "剧本"
+    # 清洗文件名，去掉非法字符
+    safe_title = "".join(c for c in title if c.isalnum() or c in " _-（()）").strip() or "剧本"
+    filename = f"{safe_title}_剧本.yaml"
 
     return send_file(
         filepath,
         mimetype="text/yaml",
         as_attachment=True,
-        download_name=f"script_{script_id}.yaml",
+        download_name=filename,
     )
 
 
