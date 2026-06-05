@@ -1,4 +1,4 @@
-"""转换器与 Flask 路由测试 —— Schema + 章节分割 + Mock + 路由集成"""
+"""转换器与 Flask 路由测试 —— Schema + 章节分割 + Mock + 路由 + 编辑器保存"""
 
 import json
 import yaml
@@ -201,7 +201,6 @@ def test_full_flow_convert_to_result(client):
             "title": "完整流程测试",
         },
     )
-    # 应重定向到结果页
     assert resp.status_code == 302
     assert "/result/" in resp.location
 
@@ -218,3 +217,53 @@ def test_editor_not_found(client):
     resp = client.get("/editor/nonexistent123")
     text = resp.data.decode()
     assert "error" in text.lower() or "不存在" in text
+
+
+# ============================================================
+# 集成测试 —— 编辑器保存接口
+# ============================================================
+
+
+def test_save_editor_success(client, sample_script_id):
+    """有效 YAML 保存应返回 ok"""
+    valid_yaml = yaml.dump(get_empty_script(), allow_unicode=True)
+    resp = client.post(
+        f"/editor/{sample_script_id}/save",
+        data={"yaml_text": valid_yaml},
+    )
+    data = json.loads(resp.data)
+    assert data["ok"] is True
+
+
+def test_save_editor_empty_content(client, sample_script_id):
+    """空内容保存应返回 400 错误"""
+    resp = client.post(
+        f"/editor/{sample_script_id}/save",
+        data={"yaml_text": ""},
+    )
+    assert resp.status_code == 400
+    data = json.loads(resp.data)
+    assert data["ok"] is False
+    assert "内容为空" in data["error"]
+
+
+def test_save_editor_invalid_yaml(client, sample_script_id):
+    """无效 YAML 保存应返回 400 错误"""
+    resp = client.post(
+        f"/editor/{sample_script_id}/save",
+        data={"yaml_text": "坏: invalid: yaml"},
+    )
+    assert resp.status_code == 400
+    data = json.loads(resp.data)
+    assert data["ok"] is False
+    assert "YAML 语法错误" in data["error"]
+
+
+def test_save_editor_nonexistent_id(client):
+    """不存在的 script_id 保存应返回 200（此时会新建文件）"""
+    valid_yaml = yaml.dump(get_empty_script(), allow_unicode=True)
+    resp = client.post(
+        "/editor/fakeid1234567/save",
+        data={"yaml_text": valid_yaml},
+    )
+    assert resp.status_code == 200
