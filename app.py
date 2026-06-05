@@ -43,7 +43,7 @@ def _save_script(data: dict) -> str:
     """保存剧本到临时文件，返回 ID"""
     script_id = uuid.uuid4().hex[:12]
     filepath = STORAGE_DIR / f"{script_id}.yaml"
-    filepath.write_text(yaml.dump(data, allow_unicode=True, indent=2))
+    filepath.write_text(yaml.dump(data, allow_unicode=True, indent=2), encoding="utf-8")
     return script_id
 
 
