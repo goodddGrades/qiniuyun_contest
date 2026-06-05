@@ -64,6 +64,21 @@
 - 代码 Review（你看不懂的代码发给我看）
 - 查 Git 历史、看 diff
 
+## Git 提交须知（不应提交的文件）
+
+以下文件/目录**只留在本地，不提交到 git**：
+
+| 路径 | 原因 |
+|------|------|
+| `.claude/` | Claude Code 本地配置 |
+| `instance/` | 运行时生成的剧本文件 |
+| `.env` | API 密钥和敏感配置 |
+| `__pycache__/` | Python 编译缓存 |
+| `venv/` / `.venv/` | Python 虚拟环境 |
+| `.gitignore` | 已包含上述所有规则 |
+
+**规范**：每次 `git add` 前先跑 `git status` 检查，只 `git add` 项目代码文件（.py, .html, .css, .js, .md, requirements.txt），不要无脑 `git add .`。
+
 ## 技术栈
 - 后端语言：Python 3.11
 - Web框架：Flask 3.1 + Jinja2 模板
