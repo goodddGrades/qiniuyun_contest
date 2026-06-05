@@ -188,7 +188,8 @@ def read_book(filename: str):
 @app.route("/convert", methods=["POST"])
 def convert():
     """接收小说文本（粘贴或上传文件），后台执行转换，跳转到进度页"""
-    title = request.form.get("title", "").strip() or "未命名作品"
+    # 标题优先级：用户手动填写 > 上传文件名 > "未命名作品"
+    manual_title = request.form.get("title", "").strip()
     novel_text = ""
 
     # 优先读上传的文件
@@ -204,13 +205,17 @@ def convert():
         uploaded_file.save(str(tmp))
         novel_text = extract_text_from_file(tmp)
         tmp.unlink(missing_ok=True)
-        title = title or Path(uploaded_file.filename).stem
+        # 用户没填标题才用文件名
+        title = manual_title or Path(uploaded_file.filename).stem
 
     if not novel_text:
         novel_text = request.form.get("novel_text", "").strip()
 
     if not novel_text:
         return render_template("index.html", error="请粘贴小说内容或上传文件")
+
+    # 纯粘贴文本且用户没填标题时 fallback
+    title = manual_title or "未命名作品"
 
     # 创建任务 ID，启动后台转换
     task_id = uuid.uuid4().hex[:8]
