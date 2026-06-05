@@ -33,3 +33,7 @@ instance/
 
 # Local AI/Claude config
 .claude/
+
+# Local environment & internal docs
+environment01/
+.frontend-api-docs.md
