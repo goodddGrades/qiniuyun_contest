@@ -31,5 +31,11 @@ instance/
 # Project specific
 *.session
 
+# Virtual environment
+environment01/
+
 # Local AI/Claude config
 .claude/
+
+# Frontend API documentation (local only)
+.frontend-api-docs.md

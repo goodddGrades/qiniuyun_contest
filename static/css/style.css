@@ -917,6 +917,58 @@ main.container {
 }
 
 /* ============================================================
+   Toast 通知
+   ============================================================ */
+.toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.toast-error {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.toast-info {
+    background: rgba(96, 165, 250, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+@media (max-width: 768px) {
+    .toast {
+        bottom: 24px;
+        white-space: normal;
+        max-width: 90%;
+        text-align: center;
+    }
+}
+
+/* ============================================================
    选中文字颜色
    ============================================================ */
 ::selection {
