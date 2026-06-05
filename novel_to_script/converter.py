@@ -49,11 +49,11 @@ CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小�
 4. 每章至少分为 2-4 场，场景切换即换场
 5. 角色名必须与角色表中的名字完全一致
 
-请严格按照此 YAML Schema 输出，只输出 YAML 代码块：
+请严格按照此 YAML Schema 输出，只输出 YAML 代码块。注意：**幕号必须使用 {chapter_num}**，这是第 {chapter_num} 章的内容。
 
 ```yaml
 幕:
-  - 幕号: 1
+  - 幕号: {chapter_num}
     幕标题: <章节主题>
     场:
       - 场号: 1
@@ -83,23 +83,29 @@ class NovelConverter:
     """
 
     def __init__(self, api_key: str = ""):
-        """api_key 参数保留向后兼容，实际使用 Config 自动检测"""
+        """api_key="": 强制 mock 模式（测试用）；不传或 None：从 Config 自动检测"""
         self.provider = Config.LLM_PROVIDER
         self.client = None
-        self._init_client()
+        if api_key != "" or self._has_config_key():
+            self._init_client()
+
+    def _has_config_key(self) -> bool:
+        """检查 Config 中是否有可用的 API Key"""
+        return bool(Config.DEEPSEEK_API_KEY or Config.ANTHROPIC_API_KEY)
 
     def _init_client(self):
         """根据配置初始化 LLM 客户端"""
-        if self.provider == "deepseek" and Config.DEEPSEEK_API_KEY:
+        if Config.DEEPSEEK_API_KEY:
             try:
                 from openai import OpenAI
                 self.client = OpenAI(
                     api_key=Config.DEEPSEEK_API_KEY,
                     base_url=Config.DEEPSEEK_BASE_URL,
                 )
+                return
             except Exception as e:
                 print(f"DeepSeek 客户端初始化失败: {e}")
-        elif Config.ANTHROPIC_API_KEY:
+        if Config.ANTHROPIC_API_KEY:
             try:
                 from anthropic import Anthropic
                 self.client = Anthropic(api_key=Config.ANTHROPIC_API_KEY)
@@ -149,7 +155,7 @@ class NovelConverter:
             符合 schema 的剧本字典
         """
         chapters = self._split_chapters(novel_text)
-        total = min(len(chapters), 6)
+        total = len(chapters)
         result = get_empty_script()
 
         result["剧本"]["元数据"]["标题"] = title or "未命名剧本"
@@ -176,8 +182,8 @@ class NovelConverter:
         # --------------------------------------------------
         # 阶段2：逐章转换
         # --------------------------------------------------
-        chapter_count = min(len(chapters), 6)
-        for i, chapter in enumerate(chapters[:chapter_count]):
+        chapter_count = len(chapters)
+        for i, chapter in enumerate(chapters):
             if progress_callback:
                 progress_callback(i + 1, chapter_count, f"正在转换第 {i + 1}/{chapter_count} 章...")
             act_data = self._convert_chapter_with_context(
