@@ -19,7 +19,6 @@ from flask import (
     request,
     redirect,
     url_for,
-    session,
     send_file,
     jsonify,
 )
@@ -39,9 +38,10 @@ STORAGE_DIR = Path("instance/scripts")
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _save_script(data: dict) -> str:
+def _save_script(data: dict, script_id: str = "") -> str:
     """保存剧本到临时文件，返回 ID"""
-    script_id = uuid.uuid4().hex[:12]
+    if not script_id:
+        script_id = uuid.uuid4().hex[:12]
     filepath = STORAGE_DIR / f"{script_id}.yaml"
     filepath.write_text(yaml.dump(data, allow_unicode=True, indent=2), encoding="utf-8")
     return script_id
@@ -119,7 +119,7 @@ def save_editor(script_id: str):
     except yaml.YAMLError as e:
         return jsonify({"ok": False, "error": f"YAML 语法错误: {e}"}), 400
 
-    _save_script(data)  # overwrites same id
+    _save_script(data, script_id)
     return jsonify({"ok": True})
 
 
