@@ -356,7 +356,7 @@ def result(script_id: str, episode: int = 0):
             episode_yamls[str(i)] = yaml.dump(filtered, allow_unicode=True, indent=2)
 
     # 当前选中的集
-    if episodes and episode > 0:
+    if episodes and episode >= 0:
         ep_info = episodes[episode]
         filtered_acts = [acts[j] for j in ep_info["acts"] if j < len(acts)]
         filtered = {"剧本": {**data["剧本"], "幕": filtered_acts}}
