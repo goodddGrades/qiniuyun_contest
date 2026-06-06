@@ -145,23 +145,6 @@ body::before {
     width: 100%;
 }
 
-/* ---- 字符计数 ---- */
-.char-count {
-    text-align: right;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-    padding-right: 4px;
-}
-
-.char-count.warning {
-    color: var(--gold-primary);
-}
-
-.char-count.over {
-    color: var(--error);
-}
-
 /* ---- 转笔动画 ---- */
 .nav-brand .pen {
     display: inline-block;
