@@ -77,6 +77,24 @@ CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小�
 现在请转换以下第 {chapter_num} 章内容："""
 
 
+MERGE_CHARACTERS_PROMPT = """你是一个剧本角色管理专家。请分析以下角色表，找出描述的是同一个人的条目并合并。
+
+合并规则：
+1. 名字不同但描述明显指向同一人 → 合并成一个，保留最完整的描述
+2. 空条目（性格特征和角色简介都为空）→ 如果其他条目已覆盖，保留有内容的
+3. 保留每个角色的最佳名字、年龄、性别、性格特征、角色简介
+
+只需输出合并后的 YAML 角色表，格式：
+```yaml
+角色表:
+  - 角色名: ...
+    年龄: ...
+    性别: ...
+    性格特征: ...
+    角色简介: ...
+```"""
+
+
 class NovelConverter:
     """小说→剧本转换器
 
@@ -198,6 +216,9 @@ class NovelConverter:
         if progress_callback:
             progress_callback(chapter_count, chapter_count, "正在合并角色表...")
         self._consolidate_characters(result, characters)
+        # 再用 LLM 合并同人不同名
+        if self.client:
+            self._llm_merge_characters(result)
 
         return result
 
@@ -394,6 +415,31 @@ class NovelConverter:
     # -------------------------------------------------------
     # Mock 方法（无 API Key 时用）
     # -------------------------------------------------------
+
+    def _llm_merge_characters(self, result: dict) -> None:
+        """用 LLM 合并角色表中同人不同名的条目"""
+        chars = result["剧本"]["角色表"]
+        if len(chars) <= 1:
+            return
+
+        yaml_input = yaml.dump({"角色表": chars}, allow_unicode=True, indent=2)
+        try:
+            content = self._call_llm(
+                system=MERGE_CHARACTERS_PROMPT,
+                user=f"请合并以下角色表中同人不同名的条目：\n\n{yaml_input}",
+                max_tokens=2048,
+            )
+            if not content:
+                return
+            data = self._parse_yaml_block(content)
+            if data and "角色表" in data:
+                merged = self._sanitize_characters(data["角色表"])
+                MOCK_NAMES = {"角色甲", "角色乙", "角色丙"}
+                merged = [c for c in merged if c["角色名"] not in MOCK_NAMES and (c["角色简介"] or c["性格特征"])]
+                if merged:
+                    result["剧本"]["角色表"] = merged
+        except Exception as e:
+            print(f"LLM 角色合并失败: {e}")
 
     def _mock_conversion(
         self, chapters: list[str], base: dict
