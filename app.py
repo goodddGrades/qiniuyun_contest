@@ -101,6 +101,7 @@ def _load_script(script_id: str) -> dict | None:
 import threading
 
 PROGRESS: dict[str, dict] = {}
+CANCEL_EVENTS: dict[str, threading.Event] = {}
 LOCK = threading.Lock()
 
 
@@ -140,6 +141,12 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
             }
 
     try:
+        cancel_event = CANCEL_EVENTS.get(task_id)
+        if cancel_event and cancel_event.is_set():
+            with LOCK:
+                PROGRESS[task_id] = {"status": "cancelled", "current": 0, "total": 0, "message": "已取消转换"}
+            return
+
         on_progress(0, 1, "正在分析小说...")
         converter = NovelConverter()
         result = converter.convert(novel_text, title=title, progress_callback=on_progress)
@@ -282,6 +289,24 @@ def progress_status(task_id: str):
     with LOCK:
         data = PROGRESS.get(task_id, {"status": "not_found", "message": "任务不存在"})
     return jsonify(data)
+
+
+@app.route("/progress/<task_id>/cancel", methods=["POST"])
+def cancel_conversion(task_id: str):
+    """取消正在进行的转换"""
+    with LOCK:
+        if task_id not in PROGRESS:
+            return jsonify({"ok": False, "error": "任务不存在"}), 404
+        status = PROGRESS[task_id].get("status", "")
+        if status in ("done", "cancelled", "error"):
+            return jsonify({"ok": False, "error": f"任务已{status}，无法取消"}), 400
+
+        # 设置取消标志
+        event = CANCEL_EVENTS.setdefault(task_id, threading.Event())
+        event.set()
+        PROGRESS[task_id] = {"status": "cancelling", "current": 0, "total": 0, "message": "正在取消..."}
+
+    return jsonify({"ok": True, "message": "取消请求已发送"})
 
 
 @app.route("/result/<script_id>")
