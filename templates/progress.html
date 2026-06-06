@@ -24,6 +24,10 @@
         <p>请耐心等待，AI 正在逐章处理你的小说...</p>
     </div>
 
+    <div class="progress-actions">
+        <button class="btn btn-danger" id="cancelBtn" onclick="cancelConversion()">取消转换</button>
+    </div>
+
     <div class="progress-spinner" id="progressSpinner">
         <div class="loading-dots">
             <span></span><span></span><span></span>
@@ -86,14 +90,45 @@ async function poll() {
             return;
         }
         if (status === "error") {
+            document.getElementById("cancelBtn").style.display = "none";
             document.getElementById("progressSpinner").innerHTML =
                 `<p class="error-msg">❌ ${data.message}</p>
                  <a href="/" class="btn btn-outline">返回首页</a>`;
             return;
         }
+        if (status === "cancelled") {
+            document.getElementById("cancelBtn").style.display = "none";
+            document.getElementById("progressSpinner").innerHTML =
+                `<p class="success-msg">⏹️ 已取消转换</p>
+                 <a href="/" class="btn btn-outline">返回首页</a>`;
+            return;
+        }
+        if (status === "cancelling") {
+            document.getElementById("cancelBtn").disabled = true;
+            document.getElementById("cancelBtn").textContent = "正在取消...";
+        }
         setTimeout(poll, 1500);
     } catch (e) {
         setTimeout(poll, 2000);
+    }
+}
+
+async function cancelConversion() {
+    const btn = document.getElementById("cancelBtn");
+    btn.disabled = true;
+    btn.textContent = "正在取消...";
+    try {
+        const resp = await fetch(`/progress/${TASK_ID}/cancel`, { method: "POST" });
+        const data = await resp.json();
+        if (!data.ok) {
+            alert(data.error || "取消失败");
+            btn.disabled = false;
+            btn.textContent = "取消转换";
+        }
+    } catch (e) {
+        alert("取消失败，请重试");
+        btn.disabled = false;
+        btn.textContent = "取消转换";
     }
 }
 

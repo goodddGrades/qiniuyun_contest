@@ -1199,11 +1199,52 @@ main.container {
     40% { transform: scale(1); opacity: 1; }
 }
 
+/* ---- 进度页操作按钮 ---- */
+.progress-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 10px 28px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: var(--error);
+    transform: translateY(-1px);
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ---- 进度页成功/取消消息 ---- */
+.success-msg {
+    color: var(--success);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
 @media (max-width: 768px) {
     .progress-card {
         padding: 32px 20px;
     }
     .progress-steps {
         font-size: 0.7rem;
+    }
+    .btn-danger {
+        width: 100%;
     }
 }
