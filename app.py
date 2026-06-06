@@ -11,6 +11,7 @@ AI小说转剧本工具 - Flask Web 应用
 
 import io
 import os
+import secrets
 import sys
 import uuid
 
@@ -279,7 +280,7 @@ def convert():
         episode_count = 0
 
     # 创建任务 ID，启动后台转换
-    task_id = uuid.uuid4().hex[:8]
+    task_id = secrets.token_hex(8)
     with LOCK:
         PROGRESS[task_id] = {"status": "queued", "current": 0, "total": 0, "message": "正在准备..."}
 
