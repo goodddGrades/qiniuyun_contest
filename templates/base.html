@@ -12,7 +12,7 @@
     <!-- 导航栏 — 毛玻璃效果 -->
     <header class="nav">
         <div class="container">
-            <a href="{{ url_for('index') }}" class="nav-brand">✍️ 转笔为剧</a>
+            <a href="{{ url_for('index') }}" class="nav-brand"><i class="pen">✍️</i> 转笔为剧</a>
             <div class="nav-loading" id="navLoading"></div>
         </div>
     </header>
@@ -37,5 +37,18 @@
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
+<script>
+// 点击墨点效果
+document.addEventListener("click", (e) => {
+    const ink = document.createElement("div");
+    ink.className = "ink-splash";
+    ink.style.left = (e.clientX - 8) + "px";
+    ink.style.top = (e.clientY - 8) + "px";
+    ink.style.width = ink.style.height = "16px";
+    document.body.appendChild(ink);
+    requestAnimationFrame(() => ink.classList.add("ink-burst"));
+    setTimeout(() => ink.remove(), 600);
+});
+</script>
 </body>
 </html>

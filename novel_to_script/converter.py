@@ -363,11 +363,14 @@ class NovelConverter:
         seen_names = {c["角色名"] for c in clean_initial}
         known = {c["角色名"]: c for c in clean_initial}
 
+        # 过滤 mock 残留名称
+        MOCK_NAMES = {"角色甲", "角色乙", "角色丙"}
+
         for act in result["剧本"]["幕"]:
             for scene in act.get("场", []):
                 for raw_name in scene.get("人物", []):
                     for name in self._split_comma_names(raw_name):
-                        if name and name not in seen_names:
+                        if name and name not in seen_names and name not in MOCK_NAMES:
                             seen_names.add(name)
                             known[name] = {
                                 "角色名": name,
@@ -377,7 +380,7 @@ class NovelConverter:
                                 "角色简介": "",
                             }
 
-        result["剧本"]["角色表"] = list(known.values())
+        result["剧本"]["角色表"] = [v for k, v in known.items() if k not in MOCK_NAMES]
 
     # -------------------------------------------------------
     # Mock 方法（无 API Key 时用）

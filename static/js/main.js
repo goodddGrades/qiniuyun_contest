@@ -46,7 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (ext === "docx") {
-                // .docx 是二进制格式，设到文件上传 input 上
                 const fi = document.getElementById("fileInput");
                 if (fi) {
                     const dt = new DataTransfer();
@@ -55,6 +54,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     showFileStatus(file.name);
                     if (novelText) {
                         novelText.value = `（已选择 .docx 文件：${file.name}，点击「开始转换」即可上传处理）`;
+                    }
+                    // .docx 无法前端解析，显示占位信息
+                    const cc = document.getElementById("chapterCount");
+                    if (cc) {
+                        cc.textContent = "⚠️ .docx 文件无法在前端显示章节数";
+                        cc.style.color = "var(--text-muted)";
                     }
                     showToast(`📄 已选择: ${file.name}，点击「开始转换」上传`, "success");
                 }
@@ -129,7 +134,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!chapterCount || !novelText) return;
 
         const text = novelText.value;
-        const matches = text.match(/(第[一二三四五六七八九十百千万\d]+[章节]|Chapter\s*\d+|CHAPTER\s*\d+)/g);
+        const matches = text.match(
+            /(第[一二三四五六七八九十百千万\d]+[章节]|Chapter\s*\d+|CHAPTER\s*\d+|(?:^|\n)\d{1,2}\.?(?:\n|$))/g
+        );
         const count = matches ? matches.length : 0;
 
         if (count === 0) {
