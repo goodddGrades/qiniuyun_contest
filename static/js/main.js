@@ -1,6 +1,6 @@
 /**
  * 转笔为剧 - 前端交互脚本
- * 功能：拖拽上传 / 章节统计 / 一键复制 / 快捷键 / Toast 通知
+ * 功能：拖拽上传 / 章节统计 / 一键复制 / 快捷键 / Toast 通知 / 集数步进器
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -55,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (novelText) {
                         novelText.value = `（已选择 .docx 文件：${file.name}，点击「开始转换」即可上传处理）`;
                     }
-                    // .docx 无法前端解析，显示占位信息
                     const cc = document.getElementById("chapterCount");
                     if (cc) {
                         cc.textContent = "⚠️ .docx 文件无法在前端显示章节数";
@@ -66,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // .txt / .md 直接读文本，同时设到 file input（后端拿文件名做标题）
+            // .txt / .md 直接读文本
             const fi = document.getElementById("fileInput");
             if (fi) {
                 const dt = new DataTransfer();
@@ -83,10 +82,8 @@ document.addEventListener("DOMContentLoaded", () => {
             reader.readAsText(file, "UTF-8");
         });
 
-        // 点击拖拽区定位到 textarea
         dropZone.addEventListener("click", () => novelText.focus());
 
-        // 实时章节统计
         novelText.addEventListener("input", updateChapterCount);
     }
 
@@ -121,9 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (clearFileBtn) {
-        clearFileBtn.addEventListener("click", () => {
-            hideFileStatus();
-        });
+        clearFileBtn.addEventListener("click", hideFileStatus);
     }
 
     // ============================================================
@@ -158,11 +153,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 页面加载时初始化章节统计
     updateChapterCount();
 
     // ============================================================
-    // 3. 提交按钮加载状态（index.html）
+    // 4. 提交按钮加载状态
     // ============================================================
     const uploadForm = document.getElementById("uploadForm");
     const loadingOverlay = document.getElementById("loadingOverlay");
@@ -176,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 4. 一键复制 YAML（result.html）
+    // 5. 一键复制 YAML
     // ============================================================
     const copyBtn = document.getElementById("copyYamlBtn");
     const yamlCode = document.getElementById("yamlCode");
@@ -185,12 +179,10 @@ document.addEventListener("DOMContentLoaded", () => {
         copyBtn.addEventListener("click", function () {
             const text = yamlCode.textContent || yamlCode.innerText;
 
-            // 方案A：Clipboard API（现代浏览器，需要 HTTPS/localhost）
             function copyModern() {
                 return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
             }
 
-            // 方案B：传统 execCommand 回退（所有浏览器，包括 HTTP）
             function copyLegacy() {
                 try {
                     const ta = document.createElement("textarea");
@@ -209,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            // 先试 A，失败换 B，都不行给提示
             copyModern().then((ok) => {
                 if (ok) return true;
                 return copyLegacy();
@@ -230,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 5. Toast 通知系统
+    // 6. Toast 通知系统
     // ============================================================
     function showToast(message, type = "info") {
         const existing = document.querySelector(".toast");
@@ -241,12 +232,10 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.textContent = message;
         document.body.appendChild(toast);
 
-        // 触发进场动画
         requestAnimationFrame(() => {
             toast.classList.add("toast-visible");
         });
 
-        // 3秒后移除
         setTimeout(() => {
             toast.classList.remove("toast-visible");
             setTimeout(() => toast.remove(), 300);
@@ -254,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 6. 编辑器快捷键 Ctrl+S 保存（editor.html）
+    // 7. 编辑器快捷键 Ctrl+S 保存
     // ============================================================
     const yamlEditor = document.getElementById("yamlEditor");
     const saveBtn = document.getElementById("saveBtn");
@@ -267,7 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // 自动调整编辑器高度
         yamlEditor.addEventListener("input", () => {
             yamlEditor.style.height = "auto";
             yamlEditor.style.height = yamlEditor.scrollHeight + "px";
@@ -275,7 +263,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 7. 加载示例小说（index.html）
+    // 8. 集数步进器
+    // ============================================================
+    const episodeInput = document.getElementById("episodeCount");
+    const episodeDec = document.getElementById("episodeDec");
+    const episodeInc = document.getElementById("episodeInc");
+
+    if (episodeInput && episodeDec && episodeInc) {
+        function clampEpisode(val) {
+            const min = parseInt(episodeInput.min) || 0;
+            const max = parseInt(episodeInput.max) || 100;
+            return Math.max(min, Math.min(max, val));
+        }
+
+        episodeDec.addEventListener("click", () => {
+            episodeInput.value = clampEpisode(parseInt(episodeInput.value || "0") - 1);
+        });
+
+        episodeInc.addEventListener("click", () => {
+            episodeInput.value = clampEpisode(parseInt(episodeInput.value || "0") + 1);
+        });
+
+        episodeInput.addEventListener("change", () => {
+            episodeInput.value = clampEpisode(parseInt(episodeInput.value || "0"));
+        });
+    }
+
+    // ============================================================
+    // 9. 加载示例小说
     // ============================================================
     const loadSampleBtn = document.getElementById("loadSampleBtn");
 
@@ -362,10 +377,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loadSampleBtn.addEventListener("click", () => {
             novelText.value = SAMPLE_NOVEL;
-            // 同时填上作品名称
             const titleInput = document.getElementById("title");
             if (titleInput) titleInput.value = "迷雾追踪";
-            // 更新章节统计
             if (typeof updateChapterCount === "function") updateChapterCount();
             showToast("✅ 已加载示例小说《迷雾追踪》", "success");
         });

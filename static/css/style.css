@@ -1030,6 +1030,68 @@ main.container {
     margin-bottom: 8px;
 }
 
+/* ---- 集数步进器 ---- */
+.stepper-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    max-width: 160px;
+}
+
+.stepper-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-medium);
+    background: var(--bg-card);
+    color: var(--gold-primary);
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    line-height: 1;
+}
+
+.stepper-btn:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.stepper-btn:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.stepper-btn:hover {
+    background: var(--gold-primary);
+    color: #fff;
+    border-color: var(--gold-primary);
+}
+
+.stepper-btn:active {
+    transform: scale(0.95);
+}
+
+.stepper-input {
+    width: 60px;
+    height: 40px;
+    text-align: center;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    -moz-appearance: textfield;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* ============================================================
    表单分割线
    ============================================================ */
