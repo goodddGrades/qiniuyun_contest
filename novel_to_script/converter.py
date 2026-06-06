@@ -335,17 +335,25 @@ class NovelConverter:
         nums = re.findall(r"\d+", str(age_raw))
         return nums[0] if nums else "未知"
 
+    @staticmethod
+    def _clean_name(name: str) -> str:
+        """清洗角色名：去掉括号注释（如 '我（第一人称主角）' → '我'）"""
+        import re
+        name = re.sub(r"[（(][^）)]*[）)]", "", name).strip()
+        return name if name else "未知"
+
     def _sanitize_characters(self, chars: list[dict]) -> list[dict]:
-        """清洗角色表：拆分逗号名、清理年龄、去重"""
+        """清洗角色表：拆分逗号名、清理括号注释、清理年龄、去重"""
         result = []
         seen = set()
         for c in chars:
             raw_name = c.get("角色名", "")
             for name in self._split_comma_names(raw_name):
-                if name and name not in seen:
-                    seen.add(name)
+                clean = self._clean_name(name)
+                if clean and clean not in seen:
+                    seen.add(clean)
                     result.append({
-                        "角色名": name,
+                        "角色名": clean,
                         "年龄": self._clean_age(c.get("年龄", "")),
                         "性别": c.get("性别", "未知"),
                         "性格特征": c.get("性格特征", ""),
@@ -370,10 +378,11 @@ class NovelConverter:
             for scene in act.get("场", []):
                 for raw_name in scene.get("人物", []):
                     for name in self._split_comma_names(raw_name):
-                        if name and name not in seen_names and name not in MOCK_NAMES:
-                            seen_names.add(name)
-                            known[name] = {
-                                "角色名": name,
+                        clean = self._clean_name(name)
+                        if clean and clean not in seen_names and clean not in MOCK_NAMES:
+                            seen_names.add(clean)
+                            known[clean] = {
+                                "角色名": clean,
                                 "年龄": "未知",
                                 "性别": "未知",
                                 "性格特征": "",
