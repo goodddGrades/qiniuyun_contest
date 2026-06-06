@@ -6,11 +6,8 @@
     <div class="result-header">
         <h1>✅ 转换完成</h1>
         <div class="result-actions">
-            <a href="{{ url_for('editor', script_id=script_id) }}" class="btn btn-primary">
+            <a href="{{ url_for('editor', script_id=script_id) }}" class="btn btn-primary" id="editBtn">
                 ✏️ 编辑剧本
-            </a>
-            <a href="{{ url_for('editor', script_id=script_id) }}?episode={{ current_episode }}" class="btn btn-secondary" style="display:none" id="editEpisodeBtn">
-                ✏️ 编辑当前集
             </a>
             <a href="{{ url_for('download', script_id=script_id) }}" class="btn btn-secondary" id="downloadFullBtn">
                 ⬇️ 下载完整剧本
@@ -27,28 +24,65 @@
     </div>
 
     {% if episodes|length > 1 %}
-    <div class="episode-tabs">
+    <div class="episode-tabs" id="episodeTabs">
+        <button class="episode-tab {{ 'active' if current_episode == 0 else '' }}"
+                data-episode="0" data-name="完整剧本">
+            完整剧本
+        </button>
         {% for ep in episodes %}
-        <a href="{{ url_for('result', script_id=script_id, episode=loop.index0) }}"
-           class="episode-tab {{ 'active' if loop.index0 == current_episode else '' }}">
+        <button class="episode-tab {{ 'active' if loop.index0 == current_episode else '' }}"
+                data-episode="{{ loop.index0 }}" data-name="{{ ep.name }}">
             {{ ep.name }}
-        </a>
+        </button>
         {% endfor %}
     </div>
     {% endif %}
 
     <div class="yaml-viewer">
         <div class="yaml-viewer-header">
-            <span>
-                📄 {% if episodes|length > 1 and current_episode > 0 %}
-                    {{ episodes[current_episode].name }}
-                {% else %}
-                    完整剧本
-                {% endif %}
-            </span>
+            <span id="yamlTitle">📄 {{ episodes[current_episode].name if episodes|length > 1 and current_episode > 0 else '完整剧本' }}</span>
             <button class="copy-btn" id="copyYamlBtn">📋 复制</button>
         </div>
         <pre><code class="language-yaml" id="yamlCode">{{ yaml }}</code></pre>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if episodes|length > 1 %}
+<script>
+// 所有集的 YAML 数据
+const EPISODE_DATA = {{ episode_yamls | tojson }};
+const SCRIPT_ID = "{{ script_id }}";
+
+document.getElementById("episodeTabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".episode-tab");
+    if (!tab) return;
+
+    const ep = tab.dataset.episode;
+    const name = tab.dataset.name;
+
+    // 切换激活状态
+    document.querySelectorAll(".episode-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+
+    // 更新 YAML 内容（无刷新）
+    document.getElementById("yamlCode").textContent = EPISODE_DATA[ep];
+    document.getElementById("yamlTitle").textContent = "📄 " + name;
+
+    // 更新下载按钮
+    const downloadBtn = document.getElementById("downloadEpisodeBtn");
+    if (downloadBtn) {
+        downloadBtn.href = "/download/" + SCRIPT_ID + "/episode/" + ep;
+    }
+
+    // 更新复制按钮状态（清除已复制状态）
+    const copyBtn = document.getElementById("copyYamlBtn");
+    if (copyBtn) {
+        copyBtn.classList.remove("copied");
+        copyBtn.textContent = "📋 复制";
+    }
+});
+</script>
+{% endif %}
 {% endblock %}
