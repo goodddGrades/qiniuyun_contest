@@ -152,17 +152,11 @@ body::before {
     font-style: normal;
 }
 
-/* ---- 快速转笔（转换页用） ---- */
-.pen-fast {
-    display: inline-block;
-    animation: spin-fast 0.6s linear infinite;
-    font-size: 1.8rem;
+/* ---- 转笔 GIF ---- */
+.pen-gif {
+    height: 1.6em;
     vertical-align: middle;
-}
-
-@keyframes spin-fast {
-    0%   { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    margin-right: 4px;
 }
 
 @keyframes spin-pen {
