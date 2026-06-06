@@ -185,8 +185,10 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
         with LOCK:
             PROGRESS[task_id] = {"status": "cancelled", "current": 0, "total": 0, "message": "已取消转换"}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         with LOCK:
-            PROGRESS[task_id] = {"status": "error", "current": 0, "total": 0, "message": f"转换失败: {e}"}
+            PROGRESS[task_id] = {"status": "error", "current": 0, "total": 0, "message": "转换出错了，请稍后重试"}
 
 
 # -----------------------------------------------------------
