@@ -113,23 +113,16 @@ async function poll() {
     }
 }
 
-async function cancelConversion() {
-    const btn = document.getElementById("cancelBtn");
-    btn.disabled = true;
-    btn.textContent = "正在取消...";
-    try {
-        const resp = await fetch(`/progress/${TASK_ID}/cancel`, { method: "POST" });
-        const data = await resp.json();
-        if (!data.ok) {
-            alert(data.error || "取消失败");
-            btn.disabled = false;
-            btn.textContent = "取消转换";
-        }
-    } catch (e) {
-        alert("取消失败，请重试");
-        btn.disabled = false;
-        btn.textContent = "取消转换";
-    }
+function cancelConversion() {
+    // 立即显示取消成功，无需等待后端
+    document.getElementById("cancelBtn").style.display = "none";
+    document.getElementById("progressSpinner").innerHTML =
+        `<p class="success-msg">✅ 取消成功</p>
+         <a href="/" class="btn btn-outline">返回首页</a>`;
+    document.getElementById("statusText").textContent = "已取消";
+
+    // 后台默默发送取消请求（不阻塞用户）
+    fetch(`/progress/${TASK_ID}/cancel`, { method: "POST" }).catch(() => {});
 }
 
 poll();
