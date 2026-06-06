@@ -9,6 +9,7 @@ AI小说转剧本工具 - Flask Web 应用
   /download/ 下载 YAML
 """
 
+import io
 import os
 import sys
 import uuid
@@ -380,7 +381,7 @@ def download(script_id: str):
 
 @app.route("/download/<script_id>/episode/<int:episode>")
 def download_episode(script_id: str, episode: int):
-    """下载指定集的 YAML"""
+    """下载指定集的 YAML（内存流，不写临时文件）"""
     data = _load_script(script_id)
     if data is None:
         return render_template("index.html", error="剧本不存在或已过期")
@@ -398,18 +399,17 @@ def download_episode(script_id: str, episode: int):
     acts = data.get("剧本", {}).get("幕", [])
     filtered = {"剧本": {**data["剧本"], "幕": [acts[i] for i in ep_info["acts"] if i < len(acts)]}}
 
-    tmp_path = STORAGE_DIR / f"{script_id}_ep{episode}.yaml"
-    tmp_path.write_text(yaml.dump(filtered, allow_unicode=True, indent=2), encoding="utf-8")
+    buf = io.BytesIO()
+    buf.write(yaml.dump(filtered, allow_unicode=True, indent=2).encode("utf-8"))
+    buf.seek(0)
 
     title = _get_title(script_id)
-    resp = send_file(
-        tmp_path,
+    return send_file(
+        buf,
         mimetype="text/yaml",
         as_attachment=True,
         download_name=_safe_filename(title, ep_info["name"]),
     )
-    tmp_path.unlink(missing_ok=True)
-    return resp
 
 
 # -----------------------------------------------------------
