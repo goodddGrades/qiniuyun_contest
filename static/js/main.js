@@ -47,12 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (ext === "docx") {
                 // .docx 是二进制格式，设到文件上传 input 上
-                const fileInput = document.getElementById("fileInput");
-                if (fileInput) {
+                const fi = document.getElementById("fileInput");
+                if (fi) {
                     const dt = new DataTransfer();
                     dt.items.add(file);
-                    fileInput.files = dt.files;
-                    // 文本框显示提示
+                    fi.files = dt.files;
+                    showFileStatus(file.name);
                     if (novelText) {
                         novelText.value = `（已选择 .docx 文件：${file.name}，点击「开始转换」即可上传处理）`;
                     }
@@ -79,7 +79,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 2. 章节数量统计
+    // 2. 文件选择状态管理
+    // ============================================================
+    const fileInput = document.getElementById("fileInput");
+    const fileStatus = document.getElementById("fileStatus");
+    const fileName = document.getElementById("fileName");
+    const clearFileBtn = document.getElementById("clearFileBtn");
+
+    function showFileStatus(name) {
+        if (fileStatus && fileName) {
+            fileName.textContent = `📄 ${name}`;
+            fileStatus.style.display = "flex";
+        }
+    }
+
+    function hideFileStatus() {
+        if (fileStatus) fileStatus.style.display = "none";
+        if (fileInput) fileInput.value = "";
+    }
+
+    if (fileInput && fileStatus) {
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length > 0) {
+                showFileStatus(fileInput.files[0].name);
+            } else {
+                hideFileStatus();
+            }
+        });
+    }
+
+    if (clearFileBtn) {
+        clearFileBtn.addEventListener("click", () => {
+            hideFileStatus();
+        });
+    }
+
+    // ============================================================
+    // 3. 章节数量统计
     // ============================================================
     function updateChapterCount() {
         const chapterCount = document.getElementById("chapterCount");
