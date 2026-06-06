@@ -9,18 +9,43 @@
             <a href="{{ url_for('editor', script_id=script_id) }}" class="btn btn-primary">
                 ✏️ 编辑剧本
             </a>
-            <a href="{{ url_for('download', script_id=script_id) }}" class="btn btn-secondary">
-                ⬇️ 下载 YAML
+            <a href="{{ url_for('editor', script_id=script_id) }}?episode={{ current_episode }}" class="btn btn-secondary" style="display:none" id="editEpisodeBtn">
+                ✏️ 编辑当前集
             </a>
+            <a href="{{ url_for('download', script_id=script_id) }}" class="btn btn-secondary" id="downloadFullBtn">
+                ⬇️ 下载完整剧本
+            </a>
+            {% if episodes|length > 1 %}
+            <a href="{{ url_for('download_episode', script_id=script_id, episode=current_episode) }}" class="btn btn-secondary" id="downloadEpisodeBtn">
+                ⬇️ 下载当前集
+            </a>
+            {% endif %}
             <a href="{{ url_for('index') }}" class="btn btn-outline">
                 🔄 重新转换
             </a>
         </div>
     </div>
 
+    {% if episodes|length > 1 %}
+    <div class="episode-tabs">
+        {% for ep in episodes %}
+        <a href="{{ url_for('result', script_id=script_id, episode=loop.index0) }}"
+           class="episode-tab {{ 'active' if loop.index0 == current_episode else '' }}">
+            {{ ep.name }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="yaml-viewer">
         <div class="yaml-viewer-header">
-            <span>📄 script_{{ script_id }}.yaml</span>
+            <span>
+                📄 {% if episodes|length > 1 and current_episode > 0 %}
+                    {{ episodes[current_episode].name }}
+                {% else %}
+                    完整剧本
+                {% endif %}
+            </span>
             <button class="copy-btn" id="copyYamlBtn">📋 复制</button>
         </div>
         <pre><code class="language-yaml" id="yamlCode">{{ yaml }}</code></pre>
