@@ -23,5 +23,5 @@ class Config:
     # 自动选择：有 DEEPSEEK_API_KEY 就用 DeepSeek，否则用 Anthropic
     LLM_PROVIDER = "deepseek" if os.getenv("DEEPSEEK_API_KEY") else "anthropic"
 
-    # 每章最大字符数（超过则分块处理）
-    MAX_CHAPTER_CHARS = 8000
+    # 每章最大字符数（超过则截断，但章节一般不会超）
+    MAX_CHAPTER_CHARS = 30000
