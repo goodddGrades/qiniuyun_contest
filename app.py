@@ -164,7 +164,9 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
 
         # 集数切分
         acts = result.get("剧本", {}).get("幕", [])
-        episodes = _split_into_episodes(acts, episode_count)
+        # 0 = 按章切分（每章一集）
+        actual_count = episode_count if episode_count > 0 else len(acts)
+        episodes = _split_into_episodes(acts, actual_count)
         episode_path = STORAGE_DIR / f"{script_id}.episodes"
         episode_path.write_text(
             yaml.dump({"episodes": episodes, "count": episode_count},
