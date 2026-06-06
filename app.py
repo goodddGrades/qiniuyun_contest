@@ -306,11 +306,21 @@ def result(script_id: str, episode: int = 0):
         episodes = ep_data.get("episodes", [])
         episode = min(episode, len(episodes) - 1) if episodes else 0
 
-    # 按集截取
+    acts = data.get("剧本", {}).get("幕", [])
+
+    # 预计算所有集的 YAML（用于 JS 无刷新切换）
+    episode_yamls = {}
+    if episodes:
+        for i, ep in enumerate(episodes):
+            filtered_acts = [acts[j] for j in ep["acts"] if j < len(acts)]
+            filtered = {"剧本": {**data["剧本"], "幕": filtered_acts}}
+            episode_yamls[str(i)] = yaml.dump(filtered, allow_unicode=True, indent=2)
+
+    # 当前选中的集
     if episodes and episode > 0:
-        acts = data.get("剧本", {}).get("幕", [])
         ep_info = episodes[episode]
-        filtered = {"剧本": {**data["剧本"], "幕": [acts[i] for i in ep_info["acts"] if i < len(acts)]}}
+        filtered_acts = [acts[j] for j in ep_info["acts"] if j < len(acts)]
+        filtered = {"剧本": {**data["剧本"], "幕": filtered_acts}}
         yaml_text = yaml.dump(filtered, allow_unicode=True, indent=2)
     else:
         yaml_text = yaml.dump(data, allow_unicode=True, indent=2)
@@ -321,6 +331,7 @@ def result(script_id: str, episode: int = 0):
         yaml=yaml_text,
         episodes=episodes,
         current_episode=episode,
+        episode_yamls=episode_yamls,
     )
 
 
