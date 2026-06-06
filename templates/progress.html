@@ -68,12 +68,6 @@ function updateProgress(data) {
         el.classList.toggle("done", step < phase.step || data.status === "done");
     });
 
-    // 详情信息
-    const detail = document.getElementById("progressDetail");
-    if (data.total > 0 && data.current > 0) {
-        detail.innerHTML = `<p>已完成 ${data.current}/${data.total} 章</p>`;
-    }
-
     return data.status;
 }
 
