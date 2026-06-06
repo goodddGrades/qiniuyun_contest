@@ -19,12 +19,14 @@ from novel_to_script.schema import get_empty_script
 # 提示词
 # -----------------------------------------------------------
 
-ANALYST_PROMPT = """你是一位专业的剧本改编分析师。你的任务是分析小说全文，提取以下信息：
+ANALYST_PROMPT = """你是一位专业的剧本改编分析师。你的任务是分析小说全文，提取角色清单。
 
-1. **角色清单**：列出所有出现的人物，包括姓名、年龄（如已知）、性别、性格特征、角色简介
-2. **整体结构**：判断故事大概分几幕，每幕的核心冲突是什么
+**重要规则：**
+1. 角色名必须是**单个人名**，不能写两个名字，不能用逗号分隔多人
+2. 年龄只填**数字**或"未知"，不写解释（✅ "35" / "未知" ❌ "约40岁（从...推断）"）
+3. 性别只填男/女/未知
 
-只需输出角色清单，不要逐章转换。格式要求：
+格式要求：
 
 ```yaml
 角色表:
@@ -48,6 +50,7 @@ CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小�
 3. 场景转换处 → 「舞台指示」（灯光、音效、场景切换）
 4. 每章至少分为 2-4 场，场景切换即换场
 5. 角色名必须与角色表中的名字完全一致
+6. **每个人物单独一项**：「人物」列表里每一项只写一个人名，不能用逗号写多个人（✅ [甲, 乙] ❌ ["甲，乙"]）
 
 请严格按照此 YAML Schema 输出，只输出 YAML 代码块。注意：**幕号必须使用 {chapter_num}**，这是第 {chapter_num} 章的内容。
 
@@ -175,7 +178,7 @@ class NovelConverter:
         # 阶段1：分析全篇角色
         # --------------------------------------------------
         sample = novel_text[:6000]
-        characters = self._extract_characters(sample)
+        characters = self._sanitize_characters(self._extract_characters(sample))
         result["剧本"]["角色表"] = characters
         char_context = self._format_characters(characters)
 
@@ -315,25 +318,63 @@ class NovelConverter:
             ]
         return [text]
 
+    @staticmethod
+    def _split_comma_names(name: str) -> list[str]:
+        """将 '林檀， 周明远' 拆分为 ['林檀', '周明远']"""
+        import re
+        parts = re.split(r"[，,、\s]+", name)
+        return [p.strip() for p in parts if p.strip()]
+
+    @staticmethod
+    def _clean_age(age_raw: str) -> str:
+        """年龄只保留数字或'未知'"""
+        import re
+        if not age_raw or age_raw == "未知":
+            return "未知"
+        nums = re.findall(r"\d+", str(age_raw))
+        return nums[0] if nums else "未知"
+
+    def _sanitize_characters(self, chars: list[dict]) -> list[dict]:
+        """清洗角色表：拆分逗号名、清理年龄、去重"""
+        result = []
+        seen = set()
+        for c in chars:
+            raw_name = c.get("角色名", "")
+            for name in self._split_comma_names(raw_name):
+                if name and name not in seen:
+                    seen.add(name)
+                    result.append({
+                        "角色名": name,
+                        "年龄": self._clean_age(c.get("年龄", "")),
+                        "性别": c.get("性别", "未知"),
+                        "性格特征": c.get("性格特征", ""),
+                        "角色简介": c.get("角色简介", ""),
+                    })
+        return result
+
     def _consolidate_characters(
         self, result: dict, initial_chars: list[dict]
     ) -> None:
         """合并初始角色表和各幕中出现的角色，确保完整"""
-        seen_names = {c.get("角色名") for c in initial_chars}
-        known = {c.get("角色名"): c for c in initial_chars}
+        # 先清洗
+        clean_initial = self._sanitize_characters(initial_chars)
+
+        seen_names = {c["角色名"] for c in clean_initial}
+        known = {c["角色名"]: c for c in clean_initial}
 
         for act in result["剧本"]["幕"]:
             for scene in act.get("场", []):
-                for char_name in scene.get("人物", []):
-                    if char_name and char_name not in seen_names:
-                        seen_names.add(char_name)
-                        known[char_name] = {
-                            "角色名": char_name,
-                            "年龄": "未知",
-                            "性别": "未知",
-                            "性格特征": "",
-                            "角色简介": "",
-                        }
+                for raw_name in scene.get("人物", []):
+                    for name in self._split_comma_names(raw_name):
+                        if name and name not in seen_names:
+                            seen_names.add(name)
+                            known[name] = {
+                                "角色名": name,
+                                "年龄": "未知",
+                                "性别": "未知",
+                                "性格特征": "",
+                                "角色简介": "",
+                            }
 
         result["剧本"]["角色表"] = list(known.values())
 
