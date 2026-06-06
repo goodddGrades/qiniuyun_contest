@@ -108,16 +108,9 @@ async function poll() {
 }
 
 function cancelConversion() {
-    // 立即显示取消成功，1.5 秒后自动返回首页
-    document.getElementById("cancelBtn").style.display = "none";
-    document.getElementById("statusText").textContent = "已取消";
-    document.getElementById("progressSpinner").innerHTML =
-        `<p class="success-msg">⏹️ 取消成功，即将返回首页...</p>`;
-
-    // 后台默默发送取消请求（不阻塞用户）
+    // 秒回首页
     fetch(`/progress/${TASK_ID}/cancel`, { method: "POST" }).catch(() => {});
-
-    setTimeout(() => { window.location.href = "/"; }, 1500);
+    window.location.href = "/";
 }
 
 poll();
