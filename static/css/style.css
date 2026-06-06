@@ -1023,6 +1023,38 @@ main.container {
 }
 
 /* ============================================================
+   文件选择状态
+   ============================================================ */
+.file-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(212, 168, 83, 0.08);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.btn-clear {
+    background: none;
+    border: none;
+    color: var(--error);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn-clear:hover {
+    opacity: 1;
+}
+
+/* ============================================================
    信息提示
    ============================================================ */
 .alert-info {
