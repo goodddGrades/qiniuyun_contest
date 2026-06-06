@@ -49,13 +49,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 // .docx 是二进制格式，设到文件上传 input 上
                 const fileInput = document.getElementById("fileInput");
                 if (fileInput) {
-                    // 用 DataTransfer 设文件
                     const dt = new DataTransfer();
                     dt.items.add(file);
                     fileInput.files = dt.files;
-                    // 显示文件名
-                    const label = document.querySelector("label[for='fileInput']") || fileInput;
-                    const origText = label.textContent || label.innerText;
+                    // 文本框显示提示
+                    if (novelText) {
+                        novelText.value = `（已选择 .docx 文件：${file.name}，点击「开始转换」即可上传处理）`;
+                    }
                     showToast(`📄 已选择: ${file.name}，点击「开始转换」上传`, "success");
                 }
                 return;
