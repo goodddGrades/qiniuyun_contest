@@ -229,7 +229,7 @@ class NovelConverter:
 
         # 后处理
         if progress_callback:
-            progress_callback(len(chapters), len(chapters), "正在合并角色表...")
+            progress_callback(chapter_count, chapter_count, "正在合并角色表...")
         self._consolidate_characters(result, characters)
 
         return result
