@@ -37,5 +37,18 @@
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
+<script>
+// 点击墨点效果
+document.addEventListener("click", (e) => {
+    const ink = document.createElement("div");
+    ink.className = "ink-splash";
+    ink.style.left = (e.clientX - 8) + "px";
+    ink.style.top = (e.clientY - 8) + "px";
+    ink.style.width = ink.style.height = "16px";
+    document.body.appendChild(ink);
+    requestAnimationFrame(() => ink.classList.add("ink-burst"));
+    setTimeout(() => ink.remove(), 600);
+});
+</script>
 </body>
 </html>

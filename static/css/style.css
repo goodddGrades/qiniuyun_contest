@@ -68,6 +68,11 @@ body {
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 22l-1 4 4-1L22 11l-3-3L5 22z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3Cpath d='M22 8l-2-2 2-2 2 2-2 2z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3C/svg%3E") 2 24, auto;
 }
 
+/* 输入框也用笔指针 */
+textarea, input, [contenteditable] {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 22l-1 4 4-1L22 11l-3-3L5 22z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3Cpath d='M22 8l-2-2 2-2 2 2-2 2z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3C/svg%3E") 2 24, text;
+}
+
 /* ---- 背景质感层 ---- */
 body::before {
     content: '';
@@ -1119,6 +1124,28 @@ main.container {
 
 .alert-info a:hover {
     color: var(--text-primary);
+}
+
+/* ---- 点击墨点效果 ---- */
+.ink-splash {
+    position: fixed;
+    border-radius: 50%;
+    background: var(--gold-primary);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+    transform: scale(0);
+    transition: none;
+}
+
+.ink-splash.ink-burst {
+    animation: ink-burst 0.6s ease-out forwards;
+}
+
+@keyframes ink-burst {
+    0%   { transform: scale(0); opacity: 0.6; }
+    50%  { transform: scale(2); opacity: 0.3; }
+    100% { transform: scale(3); opacity: 0; }
 }
 
 /* ============================================================
