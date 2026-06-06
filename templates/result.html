@@ -25,16 +25,16 @@
 
     {% if episodes|length > 1 %}
     <div class="episode-tabs" id="episodeTabs">
-        <button class="episode-tab {{ 'active' if current_episode == 0 else '' }}"
-                data-episode="0" data-name="完整剧本">
-            完整剧本
-        </button>
         {% for ep in episodes %}
         <button class="episode-tab {{ 'active' if loop.index0 == current_episode else '' }}"
                 data-episode="{{ loop.index0 }}" data-name="{{ ep.name }}">
             {{ ep.name }}
         </button>
         {% endfor %}
+        <button class="episode-tab {{ 'active' if current_episode == -1 or episodes|length == 0 else '' }}"
+                data-episode="-1" data-name="完整剧本">
+            📖 完整剧本
+        </button>
     </div>
     {% endif %}
 
@@ -67,13 +67,18 @@ document.getElementById("episodeTabs").addEventListener("click", (e) => {
     tab.classList.add("active");
 
     // 更新 YAML 内容（无刷新）
-    document.getElementById("yamlCode").textContent = EPISODE_DATA[ep];
+    document.getElementById("yamlCode").textContent = EPISODE_DATA[ep] || EPISODE_DATA["-1"];
     document.getElementById("yamlTitle").textContent = "📄 " + name;
 
     // 更新下载按钮
     const downloadBtn = document.getElementById("downloadEpisodeBtn");
     if (downloadBtn) {
-        downloadBtn.href = "/download/" + SCRIPT_ID + "/episode/" + ep;
+        if (ep === "-1") {
+            downloadBtn.style.display = "none";
+        } else {
+            downloadBtn.style.display = "";
+            downloadBtn.href = "/download/" + SCRIPT_ID + "/episode/" + ep;
+        }
     }
 
     // 更新复制按钮状态（清除已复制状态）
