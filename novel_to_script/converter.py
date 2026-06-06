@@ -175,7 +175,7 @@ class NovelConverter:
 
                 # Anthropic / Claude
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6-20250514",
+                    model="claude-sonnet-4-20250514",
                     max_tokens=max_tokens,
                     system=system,
                     messages=[{"role": "user", "content": user}],
@@ -191,6 +191,7 @@ class NovelConverter:
             try:
                 return future.result(timeout=self.LLM_TIMEOUT)
             except TimeoutError:
+                future.cancel()
                 print(f"LLM 调用超时（{self.LLM_TIMEOUT}s）")
                 raise LLMConnectionError(f"LLM 调用超时（{self.LLM_TIMEOUT}s）")
 
