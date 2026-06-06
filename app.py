@@ -116,6 +116,8 @@ def _split_into_episodes(acts: list, episode_count: int) -> list[dict]:
     if episode_count <= 1 or len(acts) <= 1:
         return [{"name": "完整剧本", "acts": list(range(len(acts)))}]
 
+    # 集数不能超过幕数，否则后面的集是空的
+    episode_count = min(episode_count, len(acts))
     total = len(acts)
     base = total // episode_count
     remainder = total % episode_count
@@ -340,7 +342,8 @@ def result(script_id: str, episode: int = 0):
     acts = data.get("剧本", {}).get("幕", [])
 
     # 预计算所有集的 YAML（用于 JS 无刷新切换）
-    episode_yamls = {}
+    full_yaml = yaml.dump(data, allow_unicode=True, indent=2)
+    episode_yamls = {"-1": full_yaml}  # -1 = 完整剧本
     if episodes:
         for i, ep in enumerate(episodes):
             filtered_acts = [acts[j] for j in ep["acts"] if j < len(acts)]

@@ -61,7 +61,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // .txt / .md 直接读文本
+            // .txt / .md 直接读文本，同时设到 file input（后端拿文件名做标题）
+            const fi = document.getElementById("fileInput");
+            if (fi) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fi.files = dt.files;
+                showFileStatus(file.name);
+            }
             const reader = new FileReader();
             reader.onload = (event) => {
                 novelText.value = event.target.result;
