@@ -129,7 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!chapterCount || !novelText) return;
 
         const text = novelText.value;
-        const matches = text.match(/(第[一二三四五六七八九十百千万\d]+[章节]|Chapter\s*\d+|CHAPTER\s*\d+)/g);
+        const matches = text.match(
+            /(第[一二三四五六七八九十百千万\d]+[章节]|Chapter\s*\d+|CHAPTER\s*\d+|(?:^|\n)\d{1,2}\.?(?:\n|$))/g
+        );
         const count = matches ? matches.length : 0;
 
         if (count === 0) {
