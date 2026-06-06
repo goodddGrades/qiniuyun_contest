@@ -188,7 +188,7 @@ class NovelConverter:
         chapter_count = len(chapters)
         for i, chapter in enumerate(chapters):
             if progress_callback:
-                progress_callback(i + 1, chapter_count, f"正在转换第 {i + 1}/{chapter_count} 章...")
+                progress_callback(i + 1, chapter_count, f"第 {i + 1}/{chapter_count} 章")
             act_data = self._convert_chapter_with_context(
                 chapter, i + 1, char_context
             )
@@ -300,6 +300,7 @@ class NovelConverter:
             r"Chapter\s+\d+",
             r"第\d+章",
             r"^\d+[\.、]",
+            r"(?<!\d)\d{2}(?!\d)",  # 01, 02, 03 ...（两位数字）
         ]
 
         for pat in patterns:
