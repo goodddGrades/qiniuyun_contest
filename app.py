@@ -107,12 +107,10 @@ LOCK = threading.Lock()
 
 
 def _split_into_episodes(acts: list, episode_count: int) -> list[dict]:
-    """将幕列表平均切分为指定集数（集数超出幕数时自动限到幕数）"""
+    """将幕列表平均切分为指定集数"""
     if episode_count <= 1 or len(acts) <= 1:
         return [{"name": "完整剧本", "acts": list(range(len(acts)))}]
 
-    # 集数不能超过幕数，否则后面的集是空的
-    episode_count = min(episode_count, len(acts))
     total = len(acts)
     base = total // episode_count
     remainder = total % episode_count
@@ -152,36 +150,19 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
 
         on_progress(0, 1, "正在分析小说...")
         converter = NovelConverter()
-        result = converter.convert(
-            novel_text, title=title,
-            progress_callback=on_progress,
-            episode_count=episode_count,
-        )
+        result = converter.convert(novel_text, title=title, progress_callback=on_progress)
 
         with LOCK:
             PROGRESS[task_id] = {"status": "saving", "current": 1, "total": 1, "message": "正在保存剧本..."}
 
         script_id = _save_script(result)
 
-        # 集数切分（基于转换时的分组信息）
+        # 集数切分
         acts = result.get("剧本", {}).get("幕", [])
-        groups = result.get("_episode_groups", [])
-        episodes = []
-        act_idx = 0
-        for gi, count in enumerate(groups):
-            if count > 0:
-                name = f"第{gi + 1}集" if episode_count >= 1 else "完整剧本"
-                episodes.append({
-                    "name": name,
-                    "acts": list(range(act_idx, act_idx + count)),
-                })
-                act_idx += count
-        if not episodes:
-            episodes = [{"name": "完整剧本", "acts": list(range(len(acts)))}]
-
+        episodes = _split_into_episodes(acts, episode_count)
         episode_path = STORAGE_DIR / f"{script_id}.episodes"
         episode_path.write_text(
-            yaml.dump({"episodes": episodes, "count": len(episodes)},
+            yaml.dump({"episodes": episodes, "count": episode_count},
                        allow_unicode=True, indent=2),
             encoding="utf-8",
         )

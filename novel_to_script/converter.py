@@ -39,7 +39,7 @@ ANALYST_PROMPT = """你是一位专业的剧本改编分析师。你的任务是
 
 尽可能识别所有角色，包括只出现过名字的配角。"""
 
-BATCH_CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小说片段转换为结构化剧本格式。
+CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以下小说章节转换为结构化剧本格式。
 
 已知本故事包含以下角色：
 {character_context}
@@ -48,17 +48,16 @@ BATCH_CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以�
 1. 小说中的叙述性文字 → 「动作描写」
 2. 对话 → 「对白」，标注角色和表情/语气
 3. 场景转换处 → 「舞台指示」（灯光、音效、场景切换）
-4. 角色名必须与角色表中的名字完全一致
-5. **每个人物单独一项**：「人物」列表里每一项只写一个人名
-6. **多个相关章节自然合并为一幕**，不要每章都单独一幕
-7. **幕号从 {act_start} 开始连续编号**
+4. 每章至少分为 2-4 场，场景切换即换场
+5. 角色名必须与角色表中的名字完全一致
+6. **每个人物单独一项**：「人物」列表里每一项只写一个人名，不能用逗号写多个人（✅ [甲, 乙] ❌ ["甲，乙"]）
 
-请严格按照此 YAML Schema 输出，只输出 YAML 代码块：
+请严格按照此 YAML Schema 输出，只输出 YAML 代码块。注意：**幕号必须使用 {chapter_num}**，这是第 {chapter_num} 章的内容。
 
 ```yaml
 幕:
-  - 幕号: 1
-    幕标题: <幕的主题>
+  - 幕号: {chapter_num}
+    幕标题: <章节主题>
     场:
       - 场号: 1
         场景: <地点/场景名>
@@ -73,7 +72,9 @@ BATCH_CONVERTER_PROMPT = """你是一位专业的剧本改编专家。请将以�
             表情: <表情或动作指示>
           - 类型: 舞台指示
             内容: <舞台效果说明>
-```"""
+```
+
+现在请转换以下第 {chapter_num} 章内容："""
 
 
 class NovelConverter:
@@ -144,7 +145,7 @@ class NovelConverter:
     # -------------------------------------------------------
 
     def convert(self, novel_text: str, title: str = "",
-                progress_callback=None, episode_count: int = 0) -> dict[str, Any]:
+                progress_callback=None) -> dict[str, Any]:
         """
         将整部小说转换为剧本结构。
 
@@ -152,7 +153,6 @@ class NovelConverter:
             novel_text: 小说全文（含章节分隔）
             title:      剧本标题（可选）
             progress_callback: 可选回调函数(current, total, message)
-            episode_count: 切分集数（0=不分）
 
         返回：
             符合 schema 的剧本字典
@@ -183,53 +183,20 @@ class NovelConverter:
         char_context = self._format_characters(characters)
 
         # --------------------------------------------------
-        # 阶段2：分批转换
+        # 阶段2：逐章转换
         # --------------------------------------------------
-        # 按集数分组：设了集数就按集数分，否则按默认4章一批
-        if episode_count >= 1:
-            # 集数不能超过章数，否则后面的组是空的
-            episode_count = min(episode_count, len(chapters))
-            # 平均分 chapter_count 到 episode_count 组
-            base = len(chapters) // episode_count
-            rem = len(chapters) % episode_count
-            batches = []
-            idx = 0
-            for i in range(episode_count):
-                size = base + (1 if i < rem else 0)
-                batches.append(chapters[idx:idx + size])
-                idx += size
-        else:
-            # 默认4章一批
-            batches = [chapters[i:i + 4] for i in range(0, len(chapters), 4)]
-
-        act_counter = 0
-        batch_act_counts = []  # 每批产出了几幕
-
-        for bi, batch in enumerate(batches):
-            # 已处理的章节数
-            done = sum(len(batches[j]) for j in range(bi + 1))
+        chapter_count = len(chapters)
+        for i, chapter in enumerate(chapters):
             if progress_callback:
-                progress_callback(done, len(chapters), f"第 {done}/{len(chapters)} 章")
-
-            batch_text = "\n\n---\n\n".join(
-                f"【章节 {i + 1}】\n{ch}" for i, ch in enumerate(batch)
+                progress_callback(i + 1, chapter_count, f"第 {i + 1}/{chapter_count} 章")
+            act_data = self._convert_chapter_with_context(
+                chapter, i + 1, char_context
             )
-
-            acts_data = self._convert_chapter_group(
-                batch_text, act_counter + 1, char_context
-            )
-            batch_act_counts.append(len(acts_data))
-            for act in acts_data:
-                act["幕号"] = act_counter + 1
-                result["剧本"]["幕"].append(act)
-                act_counter += 1
-
-        # 记录分组信息（用于集数切分）
-        result["_episode_groups"] = batch_act_counts
+            result["剧本"]["幕"].append(act_data)
 
         # 后处理
         if progress_callback:
-            progress_callback(len(chapters), len(chapters), "正在合并角色表...")
+            progress_callback(chapter_count, chapter_count, "正在合并角色表...")
         self._consolidate_characters(result, characters)
 
         return result
@@ -279,35 +246,37 @@ class NovelConverter:
     # 阶段2：逐章转换
     # -------------------------------------------------------
 
-    def _convert_chapter_group(
-        self, batch_text: str, act_start: int, char_context: str
-    ) -> list[dict]:
-        """批量转换一组章节，返回多个幕"""
-        if not batch_text.strip():
-            return [self._mock_act(act_start)]
+    def _convert_chapter_with_context(
+        self, chapter_text: str, chapter_num: int, char_context: str
+    ) -> dict:
+        """带角色上下文的单章转换"""
+        if not chapter_text.strip():
+            return self._mock_act(chapter_num)
 
         try:
-            system = BATCH_CONVERTER_PROMPT.format(
+            system = CONVERTER_PROMPT.format(
                 character_context=char_context,
-                act_start=act_start,
+                chapter_num=chapter_num,
             )
             user_msg = (
-                f"请将以下小说章节转换为剧本格式，"
-                f"自然合并为幕（幕号从 {act_start} 开始）：\n\n{batch_text[:8000]}"
+                f"请将以下第 {chapter_num} 章小说内容转换为剧本格式：\n\n"
+                f"{chapter_text[:Config.MAX_CHAPTER_CHARS]}"
             )
 
             content = self._call_llm(system=system, user=user_msg, max_tokens=4096)
             if not content:
-                return [self._mock_act(act_start)]
+                return self._mock_act(chapter_num)
 
             data = self._parse_yaml_block(content)
             if data and "幕" in data:
-                return data["幕"]
+                acts = data["幕"]
+                if acts:
+                    return acts[0]
 
         except Exception as e:
-            print(f"批量转换失败: {e}")
+            print(f"章节 {chapter_num} 转换失败: {e}")
 
-        return [self._mock_act(act_start)]
+        return self._mock_act(chapter_num)
 
     # -------------------------------------------------------
     # 工具方法
