@@ -223,6 +223,7 @@ def convert():
     # 标题优先级：用户手动填写 > 上传文件名 > "未命名作品"
     manual_title = request.form.get("title", "").strip()
     novel_text = ""
+    title = ""  # 先初始化空
 
     # 优先读上传的文件
     uploaded_file = request.files.get("file")
@@ -238,7 +239,10 @@ def convert():
         novel_text = extract_text_from_file(tmp)
         tmp.unlink(missing_ok=True)
         # 用户没填标题才用文件名
-        title = manual_title or Path(uploaded_file.filename).stem
+        if manual_title:
+            title = manual_title
+        else:
+            title = Path(uploaded_file.filename).stem
 
     if not novel_text:
         novel_text = request.form.get("novel_text", "").strip()
@@ -246,8 +250,9 @@ def convert():
     if not novel_text:
         return render_template("index.html", error="请粘贴小说内容或上传文件")
 
-    # 纯粘贴文本且用户没填标题时 fallback
-    title = manual_title or "未命名作品"
+    # 如果还没设标题（纯粘贴文本场景），fallback
+    if not title:
+        title = manual_title or "未命名作品"
 
     # 集数设置
     try:
