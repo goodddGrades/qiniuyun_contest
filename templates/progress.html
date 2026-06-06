@@ -52,9 +52,10 @@ const PHASES = {
 
 function updateProgress(data) {
     const phase = PHASES[data.status] || PHASES["queued"];
-    const pct = data.total > 0
-        ? Math.round((data.current / data.total) * 70) + 15
-        : phase.pct;
+    const pct = Math.max(
+        data.total > 0 ? Math.round((data.current / data.total) * 70) + 15 : 0,
+        phase.pct
+    );
 
     // 进度条
     document.getElementById("progressFill").style.width = Math.min(pct, 100) + "%";
