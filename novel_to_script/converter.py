@@ -223,7 +223,7 @@ class NovelConverter:
         )
 
         if not self.client:
-            return self._mock_conversion(chapters, result)
+            return self._mock_conversion(chapters, result, progress_callback)
 
         if progress_callback:
             progress_callback(0, total, "正在分析角色...")
@@ -473,10 +473,20 @@ class NovelConverter:
             print(f"LLM 角色合并失败: {e}")
 
     def _mock_conversion(
-        self, chapters: list[str], base: dict
+        self, chapters: list[str], base: dict,
+        progress_callback=None,
     ) -> dict[str, Any]:
-        for i in range(min(len(chapters), 3)):
+        count = min(len(chapters), 3)
+        if progress_callback:
+            progress_callback(0, count, "（模拟）正在准备...")
+            import time
+        for i in range(count):
+            if progress_callback:
+                progress_callback(i + 1, count, f"（模拟）第 {i + 1}/{count} 章")
+                time.sleep(0.3)
             base["剧本"]["幕"].append(self._mock_act(i + 1))
+        if progress_callback:
+            progress_callback(count, count, "（模拟完成）")
         return base
 
     def _mock_act(self, num: int) -> dict:
