@@ -17,6 +17,23 @@ from config import Config
 from novel_to_script.schema import get_empty_script
 
 # -----------------------------------------------------------
+# 自定义异常
+# -----------------------------------------------------------
+
+class LLMTimeoutError(Exception):
+    """LLM 调用超时"""
+    pass
+
+class LLMConnectionError(Exception):
+    """LLM 网络连接失败"""
+    pass
+
+class LLMParseError(Exception):
+    """LLM 响应解析失败"""
+    pass
+
+
+# -----------------------------------------------------------
 # 提示词
 # -----------------------------------------------------------
 
@@ -138,29 +155,36 @@ class NovelConverter:
 
     def _call_llm(self, system: str, user: str, max_tokens: int = 4096) -> str:
         """统一的 LLM 调用接口，自动选择 Claude 或 DeepSeek，带超时保护"""
+        from requests.exceptions import ConnectionError, Timeout
+
         if not self.client:
             return ""
 
         def _do_call():
-            if self.provider == "deepseek":
-                response = self.client.chat.completions.create(
-                    model="deepseek-chat",
-                    max_tokens=max_tokens,
-                    messages=[
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                )
-                return response.choices[0].message.content or ""
+            try:
+                if self.provider == "deepseek":
+                    response = self.client.chat.completions.create(
+                        model="deepseek-chat",
+                        max_tokens=max_tokens,
+                        messages=[
+                            {"role": "system", "content": system},
+                            {"role": "user", "content": user},
+                        ],
+                    )
+                    return response.choices[0].message.content or ""
 
-            # Anthropic / Claude
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6-20250514",
-                max_tokens=max_tokens,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            )
-            return response.content[0].text
+                # Anthropic / Claude
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-6-20250514",
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=[{"role": "user", "content": user}],
+                )
+                return response.content[0].text
+            except (ConnectionError, Timeout) as e:
+                raise LLMConnectionError(f"LLM 网络连接失败: {e}") from e
+            except Exception as e:
+                raise LLMConnectionError(f"LLM 调用异常: {e}") from e
 
         with ThreadPoolExecutor(max_workers=1) as pool:
             future = pool.submit(_do_call)
@@ -168,7 +192,7 @@ class NovelConverter:
                 return future.result(timeout=self.LLM_TIMEOUT)
             except TimeoutError:
                 print(f"LLM 调用超时（{self.LLM_TIMEOUT}s）")
-                return ""
+                raise LLMConnectionError(f"LLM 调用超时（{self.LLM_TIMEOUT}s）")
 
     # -------------------------------------------------------
     # 公开接口
@@ -253,8 +277,10 @@ class NovelConverter:
             if data and "角色表" in data:
                 return data["角色表"]
 
-        except Exception as e:
-            print(f"角色提取失败: {e}")
+        except LLMConnectionError as e:
+            print(f"角色提取失败（网络错误）: {e}")
+        except LLMParseError as e:
+            print(f"角色提取失败（解析错误）: {e}")
 
         return []
 
@@ -306,8 +332,10 @@ class NovelConverter:
                 if acts:
                     return acts[0]
 
-        except Exception as e:
-            print(f"章节 {chapter_num} 转换失败: {e}")
+        except LLMConnectionError as e:
+            print(f"章节 {chapter_num} 转换失败（网络错误）: {e}")
+        except LLMParseError as e:
+            print(f"章节 {chapter_num} 转换失败（解析错误）: {e}")
 
         return self._mock_act(chapter_num)
 
