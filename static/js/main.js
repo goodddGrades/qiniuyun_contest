@@ -91,6 +91,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
+    // 1b. 字数统计
+    // ============================================================
+    const novelTextarea = document.getElementById("novel_text");
+    const charCountEl = document.getElementById("charCount");
+    const MAX_CHARS = 50000;
+
+    if (novelTextarea && charCountEl) {
+        function updateCharCount() {
+            const len = novelTextarea.value.length;
+            charCountEl.textContent = len;
+            const el = charCountEl.parentElement;
+            el.classList.toggle("warning", len > MAX_CHARS * 0.9);
+            el.classList.toggle("over", len >= MAX_CHARS);
+        }
+        novelTextarea.addEventListener("input", updateCharCount);
+        updateCharCount();
+    }
+
+    // ============================================================
     // 2. 文件选择状态管理
     // ============================================================
     const fileInput = document.getElementById("fileInput");
