@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const epInput = document.getElementById("episodeCount");
         if (epInput && count > 0) {
             epInput.max = count;
-            epInput.placeholder = `0（不切分，最多${count}集）`;
+            epInput.placeholder = `0=按章切分，最多${count}集`;
         }
     }
 
