@@ -129,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!chapterCount || !novelText) return;
 
         const text = novelText.value;
-        // 匹配「第X章」「第X节」「Chapter X」「CHAPTER X」
         const matches = text.match(/(第[一二三四五六七八九十百千万\d]+[章节]|Chapter\s*\d+|CHAPTER\s*\d+)/g);
         const count = matches ? matches.length : 0;
 
@@ -142,6 +141,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             chapterCount.textContent = `✅ 已检测 ${count} 个章节`;
             chapterCount.style.color = "var(--success)";
+        }
+
+        // 同时更新集数上限
+        const epInput = document.getElementById("episodeCount");
+        if (epInput && count > 0) {
+            epInput.max = count;
+            epInput.placeholder = `0（不切分，最多${count}集）`;
         }
     }
 
