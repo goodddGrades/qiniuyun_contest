@@ -1023,6 +1023,38 @@ main.container {
 }
 
 /* ============================================================
+   集数切换标签
+   ============================================================ */
+.episode-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.episode-tab {
+    padding: 8px 18px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.episode-tab:hover {
+    border-color: var(--gold-primary);
+    color: var(--gold-primary);
+}
+
+.episode-tab.active {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold-primary));
+    color: #0f0f13;
+    border-color: transparent;
+    font-weight: 600;
+}
+
+/* ============================================================
    文件选择状态
    ============================================================ */
 .file-status {

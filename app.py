@@ -104,7 +104,28 @@ PROGRESS: dict[str, dict] = {}
 LOCK = threading.Lock()
 
 
-def _run_conversion(task_id: str, novel_text: str, title: str):
+def _split_into_episodes(acts: list, episode_count: int) -> list[dict]:
+    """将幕列表平均切分为指定集数"""
+    if episode_count <= 1 or len(acts) <= 1:
+        return [{"name": "完整剧本", "acts": list(range(len(acts)))}]
+
+    total = len(acts)
+    base = total // episode_count
+    remainder = total % episode_count
+    episodes = []
+    start = 0
+    for i in range(episode_count):
+        size = base + (1 if i < remainder else 0)
+        indices = list(range(start, start + size))
+        episodes.append({
+            "name": f"第{i + 1}集",
+            "acts": indices,
+        })
+        start += size
+    return episodes
+
+
+def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: int = 0):
     """在后台线程中执行转换，逐步更新进度"""
     from novel_to_script.converter import NovelConverter
 
@@ -127,6 +148,17 @@ def _run_conversion(task_id: str, novel_text: str, title: str):
             PROGRESS[task_id] = {"status": "saving", "current": 1, "total": 1, "message": "正在保存剧本..."}
 
         script_id = _save_script(result)
+
+        # 集数切分
+        acts = result.get("剧本", {}).get("幕", [])
+        episodes = _split_into_episodes(acts, episode_count)
+        episode_path = STORAGE_DIR / f"{script_id}.episodes"
+        episode_path.write_text(
+            yaml.dump({"episodes": episodes, "count": episode_count},
+                       allow_unicode=True, indent=2),
+            encoding="utf-8",
+        )
+
         with LOCK:
             PROGRESS[task_id] = {
                 "status": "done", "current": 1, "total": 1,
@@ -217,12 +249,22 @@ def convert():
     # 纯粘贴文本且用户没填标题时 fallback
     title = manual_title or "未命名作品"
 
+    # 集数设置
+    try:
+        episode_count = int(request.form.get("episode_count", "0"))
+    except ValueError:
+        episode_count = 0
+
     # 创建任务 ID，启动后台转换
     task_id = uuid.uuid4().hex[:8]
     with LOCK:
         PROGRESS[task_id] = {"status": "queued", "current": 0, "total": 0, "message": "正在准备..."}
 
-    thread = threading.Thread(target=_run_conversion, args=(task_id, novel_text, title), daemon=True)
+    thread = threading.Thread(
+        target=_run_conversion,
+        args=(task_id, novel_text, title, episode_count),
+        daemon=True,
+    )
     thread.start()
 
     return redirect(url_for("progress_page", task_id=task_id))
@@ -243,14 +285,37 @@ def progress_status(task_id: str):
 
 
 @app.route("/result/<script_id>")
-def result(script_id: str):
-    """展示转换结果"""
+@app.route("/result/<script_id>/<int:episode>")
+def result(script_id: str, episode: int = 0):
+    """展示转换结果（可选指定集数）"""
     data = _load_script(script_id)
     if data is None:
         return render_template("index.html", error="剧本不存在或已过期")
 
-    yaml_text = yaml.dump(data, allow_unicode=True, indent=2)
-    return render_template("result.html", script_id=script_id, yaml=yaml_text)
+    # 读取集信息
+    episode_path = STORAGE_DIR / f"{script_id}.episodes"
+    episodes = []
+    if episode_path.exists():
+        ep_data = yaml.safe_load(episode_path.read_text(encoding="utf-8"))
+        episodes = ep_data.get("episodes", [])
+        episode = min(episode, len(episodes) - 1) if episodes else 0
+
+    # 按集截取
+    if episodes and episode > 0:
+        acts = data.get("剧本", {}).get("幕", [])
+        ep_info = episodes[episode]
+        filtered = {"剧本": {**data["剧本"], "幕": [acts[i] for i in ep_info["acts"] if i < len(acts)]}}
+        yaml_text = yaml.dump(filtered, allow_unicode=True, indent=2)
+    else:
+        yaml_text = yaml.dump(data, allow_unicode=True, indent=2)
+
+    return render_template(
+        "result.html",
+        script_id=script_id,
+        yaml=yaml_text,
+        episodes=episodes,
+        current_episode=episode,
+    )
 
 
 @app.route("/editor/<script_id>")
@@ -280,26 +345,66 @@ def save_editor(script_id: str):
     return jsonify({"ok": True})
 
 
+def _get_title(script_id: str) -> str:
+    """读取保存的剧本标题"""
+    title_file = STORAGE_DIR / f"{script_id}.title"
+    return title_file.read_text(encoding="utf-8") if title_file.exists() else "剧本"
+
+
+def _safe_filename(title: str, suffix: str = "剧本") -> str:
+    """生成安全的文件名"""
+    safe = "".join(c for c in title if c.isalnum() or c in " _-（()）").strip() or "剧本"
+    return f"{safe}_{suffix}.yaml"
+
+
 @app.route("/download/<script_id>")
 def download(script_id: str):
-    """下载 YAML 文件（文件名：原小说名_剧本.yaml）"""
+    """下载完整剧本 YAML"""
     filepath = STORAGE_DIR / f"{script_id}.yaml"
     if not filepath.exists():
         return render_template("index.html", error="剧本不存在或已过期")
 
-    # 读取保存的标题
-    title_file = STORAGE_DIR / f"{script_id}.title"
-    title = title_file.read_text(encoding="utf-8") if title_file.exists() else "剧本"
-    # 清洗文件名，去掉非法字符
-    safe_title = "".join(c for c in title if c.isalnum() or c in " _-（()）").strip() or "剧本"
-    filename = f"{safe_title}_剧本.yaml"
-
+    title = _get_title(script_id)
     return send_file(
         filepath,
         mimetype="text/yaml",
         as_attachment=True,
-        download_name=filename,
+        download_name=_safe_filename(title),
     )
+
+
+@app.route("/download/<script_id>/episode/<int:episode>")
+def download_episode(script_id: str, episode: int):
+    """下载指定集的 YAML"""
+    data = _load_script(script_id)
+    if data is None:
+        return render_template("index.html", error="剧本不存在或已过期")
+
+    ep_path = STORAGE_DIR / f"{script_id}.episodes"
+    if not ep_path.exists():
+        return download(script_id)
+
+    ep_data = yaml.safe_load(ep_path.read_text(encoding="utf-8"))
+    episodes = ep_data.get("episodes", [])
+    if episode < 0 or episode >= len(episodes):
+        return download(script_id)
+
+    ep_info = episodes[episode]
+    acts = data.get("剧本", {}).get("幕", [])
+    filtered = {"剧本": {**data["剧本"], "幕": [acts[i] for i in ep_info["acts"] if i < len(acts)]}}
+
+    tmp_path = STORAGE_DIR / f"{script_id}_ep{episode}.yaml"
+    tmp_path.write_text(yaml.dump(filtered, allow_unicode=True, indent=2), encoding="utf-8")
+
+    title = _get_title(script_id)
+    resp = send_file(
+        tmp_path,
+        mimetype="text/yaml",
+        as_attachment=True,
+        download_name=_safe_filename(title, ep_info["name"]),
+    )
+    tmp_path.unlink(missing_ok=True)
+    return resp
 
 
 # -----------------------------------------------------------
