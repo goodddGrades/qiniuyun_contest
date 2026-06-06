@@ -107,12 +107,10 @@ LOCK = threading.Lock()
 
 
 def _split_into_episodes(acts: list, episode_count: int) -> list[dict]:
-    """将幕列表平均切分为指定集数（集数超出幕数时自动限到幕数）"""
+    """将幕列表平均切分为指定集数"""
     if episode_count <= 1 or len(acts) <= 1:
         return [{"name": "完整剧本", "acts": list(range(len(acts)))}]
 
-    # 集数不能超过幕数，否则后面的集是空的
-    episode_count = min(episode_count, len(acts))
     total = len(acts)
     base = total // episode_count
     remainder = total % episode_count
