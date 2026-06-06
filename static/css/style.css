@@ -68,9 +68,9 @@ body {
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 22l-1 4 4-1L22 11l-3-3L5 22z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3Cpath d='M22 8l-2-2 2-2 2 2-2 2z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3C/svg%3E") 2 24, auto;
 }
 
-/* 输入框也用笔指针 */
-textarea, input, [contenteditable] {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 22l-1 4 4-1L22 11l-3-3L5 22z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3Cpath d='M22 8l-2-2 2-2 2 2-2 2z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3C/svg%3E") 2 24, text;
+/* 输入框、按钮、标签页都用笔指针 */
+textarea, input, button, select, a, [contenteditable], .episode-tab, .btn {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 22l-1 4 4-1L22 11l-3-3L5 22z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3Cpath d='M22 8l-2-2 2-2 2 2-2 2z' fill='%23d4a853' stroke='%23b8893e' stroke-width='1'/%3E%3C/svg%3E") 2 24, pointer;
 }
 
 /* ---- 背景质感层 ---- */
