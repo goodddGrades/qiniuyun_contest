@@ -39,6 +39,7 @@
 {% block scripts %}
 <script>
 const TASK_ID = "{{ task_id }}";
+let polling = true;
 
 const PHASES = {
     "queued":     { step: 0, pct: 0,  text: "正在准备..." },
@@ -72,6 +73,7 @@ function updateProgress(data) {
 }
 
 async function poll() {
+    if (!polling) return;
     try {
         const resp = await fetch(`/progress/${TASK_ID}/status`);
         const data = await resp.json();
@@ -108,7 +110,7 @@ async function poll() {
 }
 
 function cancelConversion() {
-    // 显示反馈后秒回首页
+    polling = false;  // 立即停止轮询
     document.getElementById("cancelBtn").style.display = "none";
     document.getElementById("statusText").textContent = "正在取消...";
     fetch(`/progress/${TASK_ID}/cancel`, { method: "POST" }).catch(() => {});
