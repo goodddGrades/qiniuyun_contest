@@ -106,6 +106,11 @@ CANCEL_EVENTS: dict[str, threading.Event] = {}
 LOCK = threading.Lock()
 
 
+class CancelledError(Exception):
+    """转换被用户取消"""
+    pass
+
+
 def _split_into_episodes(acts: list, episode_count: int) -> list[dict]:
     """将幕列表平均切分为指定集数"""
     if episode_count <= 1 or len(acts) <= 1:
@@ -132,6 +137,10 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
     from novel_to_script.converter import NovelConverter
 
     def on_progress(current, total, message):
+        # 每次回调都检查用户是否点了取消
+        cancel_event = CANCEL_EVENTS.get(task_id)
+        if cancel_event and cancel_event.is_set():
+            raise CancelledError()
         status = "converting" if total > 0 and current > 0 else "analyzing"
         with LOCK:
             PROGRESS[task_id] = {
@@ -142,12 +151,6 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
             }
 
     try:
-        cancel_event = CANCEL_EVENTS.get(task_id)
-        if cancel_event and cancel_event.is_set():
-            with LOCK:
-                PROGRESS[task_id] = {"status": "cancelled", "current": 0, "total": 0, "message": "已取消转换"}
-            return
-
         on_progress(0, 1, "正在分析小说...")
         converter = NovelConverter()
         result = converter.convert(novel_text, title=title, progress_callback=on_progress)
@@ -173,6 +176,9 @@ def _run_conversion(task_id: str, novel_text: str, title: str, episode_count: in
                 "message": "转换完成!", "result_id": script_id,
             }
 
+    except CancelledError:
+        with LOCK:
+            PROGRESS[task_id] = {"status": "cancelled", "current": 0, "total": 0, "message": "已取消转换"}
     except Exception as e:
         with LOCK:
             PROGRESS[task_id] = {"status": "error", "current": 0, "total": 0, "message": f"转换失败: {e}"}
