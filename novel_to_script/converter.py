@@ -144,7 +144,7 @@ class NovelConverter:
     # -------------------------------------------------------
 
     def convert(self, novel_text: str, title: str = "",
-                progress_callback=None) -> dict[str, Any]:
+                progress_callback=None, episode_count: int = 0) -> dict[str, Any]:
         """
         将整部小说转换为剧本结构。
 
@@ -152,6 +152,7 @@ class NovelConverter:
             novel_text: 小说全文（含章节分隔）
             title:      剧本标题（可选）
             progress_callback: 可选回调函数(current, total, message)
+            episode_count: 切分集数（0=不分）
 
         返回：
             符合 schema 的剧本字典
@@ -182,16 +183,32 @@ class NovelConverter:
         char_context = self._format_characters(characters)
 
         # --------------------------------------------------
-        # 阶段2：分批转换（每批4章，LLM自动决定幕边界）
+        # 阶段2：分批转换
         # --------------------------------------------------
-        BATCH_SIZE = 4
-        batches = [chapters[i:i + BATCH_SIZE] for i in range(0, len(chapters), BATCH_SIZE)]
-        total_batches = len(batches)
+        # 按集数分组：设了集数就按集数分，否则按默认4章一批
+        if episode_count >= 1:
+            # 集数不能超过章数，否则后面的组是空的
+            episode_count = min(episode_count, len(chapters))
+            # 平均分 chapter_count 到 episode_count 组
+            base = len(chapters) // episode_count
+            rem = len(chapters) % episode_count
+            batches = []
+            idx = 0
+            for i in range(episode_count):
+                size = base + (1 if i < rem else 0)
+                batches.append(chapters[idx:idx + size])
+                idx += size
+        else:
+            # 默认4章一批
+            batches = [chapters[i:i + 4] for i in range(0, len(chapters), 4)]
+
         act_counter = 0
+        batch_act_counts = []  # 每批产出了几幕
 
         for bi, batch in enumerate(batches):
+            # 已处理的章节数
+            done = sum(len(batches[j]) for j in range(bi + 1))
             if progress_callback:
-                done = min((bi + 1) * BATCH_SIZE, len(chapters))
                 progress_callback(done, len(chapters), f"第 {done}/{len(chapters)} 章")
 
             batch_text = "\n\n---\n\n".join(
@@ -201,10 +218,14 @@ class NovelConverter:
             acts_data = self._convert_chapter_group(
                 batch_text, act_counter + 1, char_context
             )
+            batch_act_counts.append(len(acts_data))
             for act in acts_data:
                 act["幕号"] = act_counter + 1
                 result["剧本"]["幕"].append(act)
                 act_counter += 1
+
+        # 记录分组信息（用于集数切分）
+        result["_episode_groups"] = batch_act_counts
 
         # 后处理
         if progress_callback:
