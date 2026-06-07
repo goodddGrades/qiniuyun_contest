@@ -124,7 +124,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fileInput && fileStatus) {
         fileInput.addEventListener("change", () => {
             if (fileInput.files.length > 0) {
-                showFileStatus(fileInput.files[0].name);
+                const file = fileInput.files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                showFileStatus(file.name);
+                if (ext === "txt" || ext === "md") {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        novelText.value = event.target.result;
+                        updateChapterCount();
+                        showToast(`✅ 已加载: ${file.name}`, "success");
+                    };
+                    reader.readAsText(file, "UTF-8");
+                } else if (ext === "docx") {
+                    if (novelText) {
+                        novelText.value = `（已选择 .docx 文件：${file.name}，点击「开始转换」即可上传处理）`;
+                    }
+                    const cc = document.getElementById("chapterCount");
+                    if (cc) {
+                        cc.textContent = "⚠️ .docx 文件无法在前端显示章节数";
+                        cc.style.color = "var(--text-muted)";
+                    }
+                    showToast(`📄 已选择: ${file.name}，点击「开始转换」上传`, "success");
+                }
             } else {
                 hideFileStatus();
             }
