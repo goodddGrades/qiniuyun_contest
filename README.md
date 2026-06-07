@@ -67,7 +67,7 @@ requirements.txt         # 📋 依赖清单
 |------|------|
 | `app.py` | Flask Web 应用入口，定义路由：上传 → 转换 → 展示 → 编辑 → 下载 |
 | `config.py` | 读取 `.env` 中的 API Key 等配置 |
-| `novel_to_script/converter.py` | 核心转换逻辑，调用 Claude API，支持分章处理、长文本分块、mock 模式 |
+| `novel_to_script/converter.py` | 核心转换逻辑，支持 Claude / DeepSeek 双后端，分章处理、长文本分块、mock 模式 |
 | `novel_to_script/schema.py` | 定义剧本 YAML 格式规范，提供结构验证函数 |
 | `templates/` | 4 个 Jinja2 页面模板，覆盖完整用户流程 |
 | `docs/yaml_schema.md` | 比赛要求的 YAML Schema 设计文档，含设计原因说明 |
@@ -82,15 +82,23 @@ requirements.txt         # 📋 依赖清单
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API Key
+### 2. 配置 API Key（任选其一）
 
 创建 `.env` 文件：
+
+**方案A：DeepSeek**（推荐）
+
+```env
+DEEPSEEK_API_KEY=你的DeepSeek_API_Key
+```
+
+**方案B：Claude**
 
 ```env
 ANTHROPIC_API_KEY=你的Claude_API_Key
 ```
 
-> 没有 API Key 也能运行，会自动使用 mock 数据展示效果。
+> 没有 API Key 也能运行，会自动使用 mock 数据展示完整流程。
 
 ### 3. 启动
 
