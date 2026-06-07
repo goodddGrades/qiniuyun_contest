@@ -40,16 +40,16 @@
             </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="fileUploadGroup">
             <label>
                 上传小说文件
                 <span class="hint">支持 .txt .md .docx</span>
             </label>
             <input type="file" id="fileInput" name="file"
                    accept=".txt,.md,.docx" class="form-input"
-                   style="padding:10px">
-            <div id="fileStatus" class="file-status" style="display:none">
-                <span id="fileName"></span>
+                   style="padding:10px{% if from_book %};display:none{% endif %}">
+            <div id="fileStatus" class="file-status" {% if not from_book %}style="display:none"{% endif %}>
+                <span id="fileName">{% if from_book %}📂 {{ from_book }}{% endif %}</span>
                 <button type="button" id="clearFileBtn" class="btn-clear" title="移除文件">×</button>
             </div>
         </div>
