@@ -25,3 +25,7 @@ class Config:
 
     # 每章最大字符数（超过则截断，但章节一般不会超）
     MAX_CHAPTER_CHARS = 30000
+
+    # 并行转换：同时转换的章节数（0 或 1 表示串行）
+    # Claude/DeepSeek 对单账号有速率限制，建议 3-5
+    LLM_PARALLEL_WORKERS = int(os.getenv("LLM_PARALLEL_WORKERS", "5"))

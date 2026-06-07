@@ -4,7 +4,7 @@
 使用 LLM（默认 Claude API）将小说文本转换为结构化剧本 YAML。
 采用两阶段策略：
   1. 分析阶段 — 提取全篇角色清单和整体结构
-  2. 转换阶段 — 逐章转换，带上角色上下文确保一致性
+  2. 转换阶段 — 并行转换各章节（多章时并发调用 LLM），带上角色上下文确保一致性
 """
 
 import re
@@ -238,16 +238,63 @@ class NovelConverter:
         char_context = self._format_characters(characters)
 
         # --------------------------------------------------
-        # 阶段2：逐章转换
+        # 阶段2：并行转换所有章节
         # --------------------------------------------------
         chapter_count = len(chapters)
-        for i, chapter in enumerate(chapters):
+        if chapter_count <= 1:
+            # 仅一章时直接转换，无需并行开销
+            for i, chapter in enumerate(chapters):
+                if progress_callback:
+                    progress_callback(i + 1, chapter_count, f"第 {i + 1}/{chapter_count} 章")
+                act_data = self._convert_chapter_with_context(
+                    chapter, i + 1, char_context
+                )
+                result["剧本"]["幕"].append(act_data)
+        else:
+            # 多章并行转换
+            from concurrent.futures import as_completed
+            import threading
+
+            # 用列表占位，按索引收集结果，保持章节顺序
+            acts_placeholder: list[dict | None] = [None] * chapter_count
+            done_lock = threading.Lock()
+            done_count = [0]  # 用列表以便闭包修改
+
             if progress_callback:
-                progress_callback(i + 1, chapter_count, f"第 {i + 1}/{chapter_count} 章")
-            act_data = self._convert_chapter_with_context(
-                chapter, i + 1, char_context
-            )
-            result["剧本"]["幕"].append(act_data)
+                progress_callback(0, chapter_count, f"第 0/{chapter_count} 章")
+
+            max_workers = min(Config.LLM_PARALLEL_WORKERS, chapter_count)
+
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                futures = {}
+                for i, chapter in enumerate(chapters):
+                    future = pool.submit(
+                        self._convert_chapter_with_context,
+                        chapter, i + 1, char_context,
+                    )
+                    futures[future] = i
+
+                for future in as_completed(futures):
+                    idx = futures[future]
+                    try:
+                        acts_placeholder[idx] = future.result()
+                    except Exception as e:
+                        print(f"章节 {idx + 1} 并行转换异常: {e}")
+                        acts_placeholder[idx] = self._mock_act(idx + 1)
+
+                    with done_lock:
+                        done_count[0] += 1
+                        current = done_count[0]
+                    if progress_callback:
+                        progress_callback(
+                            current, chapter_count,
+                            f"第 {current}/{chapter_count} 章",
+                        )
+
+            # 按顺序写入结果
+            for act in acts_placeholder:
+                if act:
+                    result["剧本"]["幕"].append(act)
 
         # 后处理
         if progress_callback:
