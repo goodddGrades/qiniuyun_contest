@@ -21,7 +21,7 @@
     </div>
 
     <div class="progress-detail" id="progressDetail">
-        <p>请耐心等待，AI 正在逐章处理你的小说...</p>
+        <p>请耐心等待，好多小鲸鱼在一起帮你转换...</p>
     </div>
 
     <div class="progress-actions">
@@ -44,7 +44,7 @@ let polling = true;
 const PHASES = {
     "queued":     { step: 0, pct: 0,  text: "正在准备..." },
     "analyzing":  { step: 1, pct: 15, text: "正在分析小说角色..." },
-    "converting": { step: 2, pct: 45, text: "正在逐章转换为剧本..." },
+    "converting": { step: 2, pct: 45, text: "小鲸鱼们正在并行转换章节..." },
     "saving":     { step: 3, pct: 85, text: "正在生成剧本..." },
     "done":       { step: 4, pct: 100, text: "转换完成！" },
     "error":      { step: 0, pct: 0,  text: "转换失败" },
