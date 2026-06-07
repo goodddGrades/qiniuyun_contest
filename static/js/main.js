@@ -104,7 +104,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function hideFileStatus() {
         if (fileStatus) fileStatus.style.display = "none";
+        if (fileName) fileName.textContent = "";
         if (fileInput) fileInput.value = "";
+        // 清除书库及所有相关状态
+        const fileUploadInputArea = document.getElementById("fileUploadInputArea");
+        if (fileUploadInputArea) fileUploadInputArea.style.display = "";
+        const bookAlert = document.querySelector(".alert-info");
+        if (bookAlert) bookAlert.remove();
+        const titleInput = document.getElementById("title");
+        if (titleInput) titleInput.value = "";
+        const novelTextEl = document.getElementById("novel_text");
+        if (novelTextEl) novelTextEl.value = "";
+        const dropZone = document.getElementById("dropZone");
+        if (dropZone) dropZone.style.display = "";
+        if (typeof updateChapterCount === "function") updateChapterCount();
+        showToast("✅ 已清除，可重新选择", "info");
     }
 
     if (fileInput && fileStatus) {
