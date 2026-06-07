@@ -44,5 +44,5 @@ environment01/
 environment01/
 
 
-# 本地小说样例
-book/
+# 本地小说样例（已取消忽略，现作为测试数据提交）
+# book/
