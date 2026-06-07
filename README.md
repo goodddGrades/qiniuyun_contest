@@ -7,7 +7,9 @@
 
 ## 🎬 演示视频
 
-项目功能演示视频位于 [`demo/项目演示.mp4`](demo/项目演示.mp4)，展示了完整的上传 → 转换 → 查看 → 编辑 → 下载流程。
+[![在B站观看演示视频](https://img.shields.io/badge/Bilibili-在线观看演示视频-00A1D6?style=for-the-badge&logo=bilibili)](https://www.bilibili.com/video/BV17CE86cEtZ/)
+
+本地文件：[`demo/项目演示.mp4`](demo/项目演示.mp4)（下载后播放）
 
 ---
 
